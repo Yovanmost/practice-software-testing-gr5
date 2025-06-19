@@ -32,12 +32,22 @@ pipeline {
     }
 
     stage('Install Dependencies') {
-      steps {
+    steps {
         sh 'docker-compose run --rm composer install'
         sh 'docker-compose run --rm laravel-api php artisan config:clear'
+
+        // 🔍 Check if vendor/ and composer.lock exist inside /var/www
+        sh 'docker-compose run --rm laravel-api ls -al /var/www'
+        sh 'docker-compose run --rm laravel-api ls -al /var/www/vendor || echo "vendor/ not found"'
+
         sh 'docker-compose run --rm angular-ui npm install --legacy-peer-deps --force'
-      }
+
+        // 🔍 Check node_modules and dist
+        sh 'docker-compose run --rm angular-ui ls -al /app'
+        sh 'docker-compose run --rm angular-ui ls -al /app/node_modules || echo "node_modules/ not found"'
     }
+    }
+
 
     stage('Run Backend Tests') {
       steps {
