@@ -24,46 +24,57 @@ pipeline {
       }
     }
 
-    stage('Build & Install') {
+    stage('Debug ENV') {
       steps {
-        dir("${env.WORKSPACE}/sprint5-with-bugs") {
-          sh 'docker-compose --env-file .env build --no-cache'
-          sh 'docker-compose --env-file .env run --rm composer install'
-          sh 'docker-compose --env-file .env run --rm laravel-api php artisan config:clear'
-          sh 'docker-compose --env-file .env run --rm angular-ui npm install --legacy-peer-deps --force'
-        }
+        sh 'cat .env || echo "No .env file found"'
+        sh 'echo "SPRINT_FOLDER is set to: $(grep SPRINT_FOLDER .env | cut -d= -f2)" || echo "Not set"'
       }
     }
 
-    stage('Run Tests') {
+    stage('Build Services') {
       steps {
-        dir("${env.WORKSPACE}/sprint5-with-bugs") {
-          sh 'docker-compose --env-file .env run --rm laravel-api php artisan test'
-          sh 'docker-compose --env-file .env run --rm angular-ui npm run test -- --watch=false --browsers=ChromeHeadless'
-        }
+        sh 'docker-compose --env-file .env build --no-cache'
       }
     }
 
-    stage('Smoke Test') {
+    stage('Install Dependencies') {
       steps {
-        dir("${env.WORKSPACE}/sprint5-with-bugs") {
-          sh 'docker-compose --env-file .env up -d'
-          sh 'sleep 10'
-          sh 'curl -f http://localhost || echo "Laravel backend might be down"'
-        }
+        sh 'docker-compose --env-file .env run --rm composer install'
+        sh 'docker-compose --env-file .env run --rm laravel-api php artisan config:clear'
+        sh 'docker-compose --env-file .env run --rm angular-ui npm install --legacy-peer-deps --force'
+      }
+    }
+
+    stage('Run Backend Tests') {
+      steps {
+        sh 'docker-compose --env-file .env run --rm laravel-api php artisan test'
+      }
+    }
+
+    stage('Run Frontend Tests') {
+      steps {
+        sh 'docker-compose --env-file .env run --rm angular-ui npm run test -- --watch=false --browsers=ChromeHeadless'
+      }
+    }
+
+    stage('Up and Ping (Optional Smoke Test)') {
+      steps {
+        sh 'docker-compose --env-file .env up -d'
+        sh 'sleep 10'
+        sh 'curl -f http://localhost || echo "Laravel backend might be down"'
       }
     }
   }
 
   post {
     always {
-      dir("${env.WORKSPACE}/sprint5-with-bugs") {
-        sh 'docker-compose --env-file .env down -v'
-      }
+      sh 'docker-compose --env-file .env down -v'
     }
+
     failure {
       echo '❌ Build or tests failed!'
     }
+
     success {
       echo '✅ CI pipeline completed successfully!'
     }
