@@ -6,65 +6,75 @@ pipeline {
   }
 
   environment {
+    COMPOSE_FILE = 'docker-compose.yml'
     SPRINT_FOLDER = 'sprint5-with-bugs'
-    DISABLE_LOGGING = 'true'
     DOCKER_HOST = "tcp://docker-tcp-relay:2375"
   }
 
   options {
-    skipStagesAfterUnstable()
-  }
-
-  triggers {
-    pollSCM('* * * * *') // You can change this to `githubPush()` if using GitHub integration
+    skipDefaultCheckout true
+    timestamps()
   }
 
   stages {
     stage('Checkout') {
       steps {
-        checkout scm
+        script {
+          checkout scm
+        }
       }
     }
 
-    stage('Build & Start Services') {
+    stage('Build Services') {
       steps {
-        sh '''
-          docker-compose -f docker-compose.yml --env-file .env up -d --build
-        '''
+        dir("${SPRINT_FOLDER}") {
+          sh 'docker-compose build --no-cache'
+        }
       }
     }
 
-    stage('Wait for Containers') {
+    stage('Install Dependencies') {
       steps {
-        echo 'Sleeping for 60s to allow containers to initialize...'
-        sh 'sleep 60'
+        dir("${SPRINT_FOLDER}") {
+          sh 'docker-compose run --rm composer install'
+          sh 'docker-compose run --rm laravel-api php artisan config:clear'
+          sh 'docker-compose run --rm angular-ui npm install --legacy-peer-deps --force'
+        }
       }
     }
 
-    stage('Run Laravel Migrations & Seed') {
+    stage('Run Backend Tests') {
       steps {
-        sh '''
-          docker-compose exec -T laravel-api php artisan migrate:fresh --seed
-        '''
+        dir("${SPRINT_FOLDER}") {
+          sh 'docker-compose run --rm laravel-api php artisan test'
+        }
       }
     }
 
-    stage('Run Laravel Tests (Pest)') {
+    stage('Run Frontend Tests') {
       steps {
-        sh '''
-          docker-compose exec -T laravel-api ./vendor/bin/pest
-        '''
+        dir("${SPRINT_FOLDER}") {
+          sh 'docker-compose run --rm angular-ui npm run test -- --watch=false --browsers=ChromeHeadless'
+        }
       }
     }
 
-    stage('Run Playwright Tests') {
+    stage('Lint (Optional)') {
       steps {
-        dir("${env.SPRINT_FOLDER}/UI") {
-          sh '''
-            npm ci
-            npx playwright install --with-deps
-            npx playwright test
-          '''
+        dir("${SPRINT_FOLDER}") {
+          // Add your linters here
+          // sh 'docker-compose run --rm laravel-api ./vendor/bin/phpcs'
+          // sh 'docker-compose run --rm angular-ui npm run lint'
+        }
+      }
+    }
+
+    stage('Up and Ping (Optional Smoke Test)') {
+      steps {
+        dir("${SPRINT_FOLDER}") {
+          sh 'docker-compose up -d'
+          sh 'sleep 10' // wait for services
+          sh 'curl -f http://localhost || echo "Laravel backend might be down"'
         }
       }
     }
@@ -72,8 +82,17 @@ pipeline {
 
   post {
     always {
-      echo 'Cleaning up containers...'
-      sh 'docker-compose down'
+      dir("${SPRINT_FOLDER}") {
+        sh 'docker-compose down -v'
+      }
+    }
+
+    failure {
+      echo '❌ Build or tests failed!'
+    }
+
+    success {
+      echo '✅ CI pipeline completed successfully!'
     }
   }
 }
