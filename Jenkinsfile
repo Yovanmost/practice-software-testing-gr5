@@ -7,7 +7,7 @@ pipeline {
 
   environment {
     COMPOSE_FILE = 'docker-compose.yml'
-    SPRINT_FOLDER = 'sprint5-with-bugs'
+    // SPRINT_FOLDER = 'sprint5-with-bugs'
     DOCKER_HOST = "tcp://docker-tcp-relay:2375"
   }
 
