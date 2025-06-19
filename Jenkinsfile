@@ -27,64 +27,48 @@ pipeline {
 
     stage('Build Services') {
       steps {
-        dir("${SPRINT_FOLDER}") {
-          sh 'docker-compose build --no-cache'
-        }
+        sh 'docker-compose build --no-cache'
       }
     }
 
     stage('Install Dependencies') {
       steps {
-        dir("${SPRINT_FOLDER}") {
-          sh 'docker-compose run --rm composer install'
-          sh 'docker-compose run --rm laravel-api php artisan config:clear'
-          sh 'docker-compose run --rm angular-ui npm install --legacy-peer-deps --force'
-        }
+        sh 'docker-compose run --rm composer install'
+        sh 'docker-compose run --rm laravel-api php artisan config:clear'
+        sh 'docker-compose run --rm angular-ui npm install --legacy-peer-deps --force'
       }
     }
 
     stage('Run Backend Tests') {
       steps {
-        dir("${SPRINT_FOLDER}") {
-          sh 'docker-compose run --rm laravel-api php artisan test'
-        }
+        sh 'docker-compose run --rm laravel-api php artisan test'
       }
     }
 
     stage('Run Frontend Tests') {
       steps {
-        dir("${SPRINT_FOLDER}") {
-          sh 'docker-compose run --rm angular-ui npm run test -- --watch=false --browsers=ChromeHeadless'
-        }
+        sh 'docker-compose run --rm angular-ui npm run test -- --watch=false --browsers=ChromeHeadless'
       }
     }
 
     stage('Lint (Optional)') {
       steps {
-        dir("${SPRINT_FOLDER}") {
-          // Add your linters here
-          // sh 'docker-compose run --rm laravel-api ./vendor/bin/phpcs'
-          // sh 'docker-compose run --rm angular-ui npm run lint'
-        }
+        // Optional linting commands
       }
     }
 
     stage('Up and Ping (Optional Smoke Test)') {
       steps {
-        dir("${SPRINT_FOLDER}") {
-          sh 'docker-compose up -d'
-          sh 'sleep 10' // wait for services
-          sh 'curl -f http://localhost || echo "Laravel backend might be down"'
-        }
+        sh 'docker-compose up -d'
+        sh 'sleep 10'
+        sh 'curl -f http://localhost || echo "Laravel backend might be down"'
       }
     }
   }
 
   post {
     always {
-      dir("${SPRINT_FOLDER}") {
-        sh 'docker-compose down -v'
-      }
+      sh 'docker-compose down -v'
     }
 
     failure {
