@@ -7,7 +7,7 @@ services:
       dockerfile: app.docker
     working_dir: /var/www
     volumes:
-      - ./${SPRINT_FOLDER}/API:/var/www:cached
+      - ./sprint5_with_bugs/API:/var/www:cached
     environment:
       - "PHP_OPCACHE_VALIDATE_TIMESTAMPS=1"
       - "DB_PORT=3306"
@@ -21,7 +21,7 @@ services:
       dockerfile: ui.docker
     working_dir: /app
     volumes:
-      - ./${SPRINT_FOLDER}/UI:/app:cached
+      - ./sprint5_with_bugs/UI:/app:cached
     ports:
       - 4200:4200
     command: >
@@ -60,18 +60,18 @@ services:
       - "host=localhost"
       - DISABLE_LOGGING=${DISABLE_LOGGING}
 
-  # composer:
-  #   image: composer:2.6.6
-  #   command: install --no-dev --optimize-autoloader --ignore-platform-req=ext-ffi && chown -R www-data /var/www && chmod 777 /var/www
-  #   volumes_from:
-  #     - laravel-api
-  #   working_dir: /var/www
   composer:
     image: composer:2.6.6
     command: install --no-dev --optimize-autoloader --ignore-platform-req=ext-ffi && chown -R www-data /var/www && chmod 777 /var/www
+    volumes_from:
+      - laravel-api
     working_dir: /var/www
-    volumes:
-      - ./sprint5-with-bugs/API:/var/www:cached
+  # composer:
+  #   image: composer:2.6.6
+  #   command: install --no-dev --optimize-autoloader --ignore-platform-req=ext-ffi && chown -R www-data /var/www && chmod 777 /var/www
+  #   working_dir: /var/www
+  #   volumes:
+  #     - ./sprint5-with-bugs/API:/var/www:cached
 
 
   # The Database
