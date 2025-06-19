@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        sprint: [1, 2, 3, 4, 5, '5-with-bugs']
+        sprint: ['5-with-bugs']
     env:
       NODE_VERSION: ${{ matrix.sprint == '5' && '22.2.0' || '16' }}
       SECRET_GOOGLE_ID: ${{ matrix.sprint == '5' && secrets.SECRET_GOOGLE_ID || '' }}
