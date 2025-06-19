@@ -51,12 +51,6 @@ pipeline {
       }
     }
 
-    stage('Lint (Optional)') {
-      steps {
-        // Optional linting commands
-      }
-    }
-
     stage('Up and Ping (Optional Smoke Test)') {
       steps {
         sh 'docker-compose up -d'
