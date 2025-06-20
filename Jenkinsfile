@@ -48,7 +48,8 @@ pipeline {
 
         echo "Installing Node.js dependencies using npm on the agent..."
         dir("${env.UI_DIR}") { // Change directory to your Angular UI folder
-          sh 'npm ci' // Use npm ci for clean, reproducible installs like GitHub Actions
+          // sh 'npm ci' // Use npm ci for clean, reproducible installs like GitHub Actions
+          sh 'npm ci --legacy-peer-deps' // This is often a safer choice than --force for peer dep issues
           // If npm ci fails due to peer deps, you might need 'npm install --force' or 'npm install --legacy-peer-deps'
         }
       }
