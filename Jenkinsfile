@@ -125,19 +125,20 @@ pipeline {
     timestamps() // Add timestamps to log output for readability
   }
 
-  stage('Checkout') {
+  stages {
+    stage('Checkout') {
       steps {
-          script {
-              checkout scm // Ensures the workspace is populated with your code
-          }
-          // Add this line directly after checkout
-          echo "Listing contents of API_DIR on Jenkins agent host..."
-          sh "ls -la ${env.API_DIR}"
-          echo "Listing contents of COMPOSE_ROOT_DIR on Jenkins agent host..."
-          sh "ls -la ${env.COMPOSE_ROOT_DIR}"
-          sh "ls -la ${env.COMPOSE_ROOT_DIR}/${env.DOCKER_COMPOSE_FILE}" // Verify compose file presence
+        script {
+          checkout scm // Ensures the workspace is populated with your code
+        }
+        // Add this line directly after checkout
+        echo "Listing contents of API_DIR on Jenkins agent host..."
+        sh "ls -la ${env.API_DIR}"
+        echo "Listing contents of COMPOSE_ROOT_DIR on Jenkins agent host..."
+        sh "ls -la ${env.COMPOSE_ROOT_DIR}"
+        sh "ls -la ${env.COMPOSE_ROOT_DIR}/${env.DOCKER_COMPOSE_FILE}" // Verify compose file presence
       }
-  }
+    }
 
     stage('Install Dependencies') {
       steps {
