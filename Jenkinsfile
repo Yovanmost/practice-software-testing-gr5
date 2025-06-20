@@ -164,10 +164,16 @@ pipeline {
 
     stage('Setup E2E Environment (Docker Compose)') {
       steps {
-        echo "Starting Docker containers for E2E tests using docker compose..."
+        echo "Ensuring a clean Docker Compose environment before starting..."
+        dir("${env.COMPOSE_ROOT_DIR}") {
+          // This command will tear down any existing services for this project.
+          // '|| true' ensures the step doesn't fail if no containers are running (e.g., first build).
+          sh 'docker-compose -f "${DOCKER_COMPOSE_FILE}" down -v --remove-orphans || true'
+        }
+
+        echo "Starting Docker containers for E2E tests using docker-compose..."
         dir("${env.COMPOSE_ROOT_DIR}") {
           sh 'export DISABLE_LOGGING=true'
-          // CHANGED: docker compose -> docker-compose
           sh 'docker-compose -f "${DOCKER_COMPOSE_FILE}" up -d'
         }
 
@@ -176,7 +182,6 @@ pipeline {
 
         echo "Creating and seeding database for E2E tests..."
         dir("${env.COMPOSE_ROOT_DIR}") {
-          // CHANGED: docker compose -> docker-compose
           sh 'docker-compose exec -T laravel-api php artisan migrate:refresh --seed'
         }
 
@@ -202,7 +207,6 @@ pipeline {
     always {
       echo "Tearing down Docker containers..."
       dir("${env.COMPOSE_ROOT_DIR}") {
-        // CHANGED: docker compose -> docker-compose
         sh 'docker-compose -f "${DOCKER_COMPOSE_FILE}" down -v --remove-orphans'
       }
     }
