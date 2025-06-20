@@ -8,6 +8,9 @@ pipeline {
   environment {
     COMPOSE_FILE = 'docker-compose.yml'
     DOCKER_HOST = "tcp://docker-tcp-relay:2375"
+    // Define the path to your API and UI directories relative to the workspace root
+    API_DIR = "sprint5-with-bugs/API"
+    UI_DIR = "sprint5-with-bugs/UI"
   }
 
   options {
@@ -26,68 +29,83 @@ pipeline {
 
     stage('Build Services') {
       steps {
-        // No dir('practice-ci') needed here.
-        // Commands run directly in /home/jenkins/workspace/practice-ci
         sh 'pwd' // Confirm current working directory
         sh 'ls -l' // List contents of the workspace root
-        sh 'cat docker-compose.yml' // <-- ADD THIS LINE
+        sh 'cat docker-compose.yml' // Keep this for verification if needed
+        // Build your application images first
         sh 'docker-compose build --no-cache'
       }
     }
 
     stage('Install Dependencies') {
       steps {
-        sh 'ls -l sprint5-with-bugs/API/composer.json || echo "composer.json NOT FOUND in JENKINS WORKSPACE"'
+        echo "Installing PHP dependencies using Composer on the agent..."
+        dir("${env.API_DIR}") { // Change directory to your Laravel API folder
+          sh 'composer install --no-dev --prefer-dist --optimize-autoloader' // Or 'composer update' as per deploy.yml
+          sh 'composer dump-autoload -o' // As seen in deploy.yml
+          sh 'php artisan config:clear' // Now this runs on the agent too, directly
+        }
 
-        echo "Attempting to run composer install and debug inside the container..."
-
-        // --- PREVIOUSLY: You had 'docker-compose run --rm composer ls -al /var/www' here
-        // --- PREVIOUSLY: You had 'docker-compose run --rm composer cat /var/www/composer.json' here
-
-        // Use the dedicated 'composer' service to install PHP dependencies
-        sh 'docker-compose run --rm composer install' // <-- THIS IS THE CORRECT COMMAND
-
-        // php artisan config:clear is a laravel-api specific command, so it runs on laravel-api
-        sh 'docker-compose run --rm laravel-api php artisan config:clear'
-
-        sh 'docker-compose run --rm laravel-api ls -al /var/www'
-        sh 'docker-compose run --rm laravel-api ls -al /var/www/vendor || echo "vendor/ not found"'
-
-        sh 'docker-compose run --rm angular-ui npm install --legacy-peer-deps --force'
-        sh 'docker-compose run --rm angular-ui ls -al /app'
-        sh 'docker-compose run --rm angular-ui ls -al /app/node_modules || echo "node_modules/ not found"'
+        echo "Installing Node.js dependencies using npm on the agent..."
+        dir("${env.UI_DIR}") { // Change directory to your Angular UI folder
+          sh 'npm ci' // Use npm ci for clean, reproducible installs like GitHub Actions
+          // If npm ci fails due to peer deps, you might need 'npm install --force' or 'npm install --legacy-peer-deps'
+        }
       }
     }
 
+    stage('Setup Test Environment') {
+        steps {
+            echo "Starting Docker services for testing..."
+            sh 'docker-compose up -d'
+            sh 'sleep 60s' // Give services time to start, especially DB
+            echo "Creating and seeding database..."
+            sh 'docker-compose exec -T laravel-api php artisan migrate:refresh --seed'
+            echo "Running smoke tests with curl..."
+            sh 'curl -v -X GET http://localhost:8091/status || echo "API /status endpoint failed!"'
+            sh """
+                curl -v -X POST 'http://localhost:8091/users/login' \\
+                -H 'Content-Type: application/json' \\
+                --data-raw '{"email":"customer@practicesoftwaretesting.com","password":"welcome01"}' || echo "API login endpoint failed!"
+            """
+        }
+    }
 
     stage('Run Backend Tests') {
       steps {
-        // No dir('practice-ci') needed here.
-        sh 'docker-compose run --rm laravel-api php artisan test'
+        // Run tests directly on the agent, as PHPUnit/Pest are now accessible
+        dir("${env.API_DIR}") {
+          // You could add logic here similar to deploy.yml for pest/phpunit based on sprint
+          sh './vendor/bin/pest' // Or './vendor/bin/phpunit' if you use Pest exclusively for sprint 5
+        }
       }
     }
 
     stage('Run Frontend Tests') {
       steps {
-        // No dir('practice-ci') needed here.
-        sh 'docker-compose run --rm angular-ui npm run test -- --watch=false --browsers=ChromeHeadless'
+        // This stage will now run Playwright tests from the agent, against the running Dockerized app
+        // You might need additional Playwright setup on the agent if you haven't done it yet
+        // (similar to how GHA installs browser binaries)
+        dir("${env.UI_DIR}") { // Assuming playwright.config.ts and tests are in the UI directory
+            // GHA uses 'npx playwright install-deps' and 'npx playwright test'
+            // Your agent Dockerfile already installed node, npm.
+            // You might need to add `npx playwright install --with-deps` to your agent Dockerfile
+            // or run it here if you want to manage browser binaries per build.
+            sh 'npx playwright test'
+        }
       }
     }
 
-    stage('Up and Ping (Optional Smoke Test)') {
-      steps {
-        // No dir('practice-ci') needed here.
-        sh 'docker-compose up -d'
-        sh 'sleep 10'
-        sh 'curl -f http://localhost || echo "Laravel backend might be down"'
-      }
-    }
+    // You can potentially remove the 'Up and Ping' stage if 'Setup Test Environment' handles it.
+    // I've incorporated the 'up -d' and curl checks into 'Setup Test Environment'.
+
   }
 
   post {
     always {
-      // No dir('practice-ci') needed here.
-      sh 'docker-compose down -v'
+      // Ensure containers are brought down even if stages fail
+      echo "Bringing down Docker services..."
+      sh 'docker-compose down -v --remove-orphans' // Added --remove-orphans for good measure
     }
 
     failure {
