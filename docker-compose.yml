@@ -66,12 +66,16 @@ services:
   #   volumes_from:
   #     - laravel-api
   #   working_dir: /var/www
-  composer:
-    image: composer:2.6.6
-    working_dir: /var/www
-    volumes:
-      - ./sprint5-with-bugs/API:/var/www:cached
-    command: install --no-dev --optimize-autoloader --ignore-platform-req=ext-ffi && chown -R www-data /var/www && chmod 777 /var/www
+
+    composer:
+      image: composer:2.6.6
+      working_dir: /var/www
+      volumes:
+        - ./sprint5-with-bugs/API:/var/www:cached
+      command: >
+        bash -c "composer install --no-dev --optimize-autoloader --ignore-platform-req=ext-ffi &&
+                chown -R www-data /var/www &&
+                chmod 777 /var/www"
 
 
   # The Database
