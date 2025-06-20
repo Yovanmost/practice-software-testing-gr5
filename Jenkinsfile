@@ -35,7 +35,8 @@ pipeline {
       steps {
         echo "Installing PHP dependencies using Composer on the agent..."
         dir("${env.API_DIR}") { // Change directory to your Laravel API folder
-          sh 'composer install --no-dev --prefer-dist --optimize-autoloader'
+          // sh 'composer install --no-dev --prefer-dist --optimize-autoloader'
+          sh 'composer install --prefer-dist --optimize-autoloader'
           sh 'composer dump-autoload -o'
           sh 'php artisan config:clear' // Still useful for clearing Laravel cache on the agent
         }
