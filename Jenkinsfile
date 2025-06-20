@@ -55,7 +55,8 @@ pipeline {
           // an in-memory SQLite database (e.g., <env name="DB_CONNECTION" value="sqlite"/>
           // <env name="DB_DATABASE" value=":memory:"/>) or mock database connections.
           // There will be no running MariaDB container for these tests.
-          sh './vendor/bin/pest' // Or './vendor/bin/phpunit'
+          // sh './vendor/bin/pest' // Or './vendor/bin/phpunit'
+          sh './vendor/bin/phpunit'
         }
       }
     }
