@@ -118,6 +118,8 @@ pipeline {
     // COMPOSE_ROOT_DIR is '.' because docker-compose.yml is at the workspace root
     COMPOSE_ROOT_DIR = "."
     DOCKER_COMPOSE_FILE = "docker-compose.yml" // Name of your Docker Compose file
+    // NEW: Absolute path for the API source code for Docker Compose volume mount
+    API_SOURCE_PATH = "${WORKSPACE}/${API_DIR}" // <--- ADD THIS LINE
   }
 
   options {
