@@ -180,6 +180,12 @@ pipeline {
         echo "Waiting for services to become ready (60 seconds)..."
         sh 'sleep 60s'
 
+        echo "Listing contents of /var/www in laravel-api container..."
+        dir("${env.COMPOSE_ROOT_DIR}") {
+            // Add this line to debug
+            sh 'docker-compose exec -T laravel-api ls -la /var/www'
+        }
+
         echo "Creating and seeding database for E2E tests..."
         dir("${env.COMPOSE_ROOT_DIR}") {
           sh 'docker-compose exec -T laravel-api php artisan migrate:refresh --seed'
