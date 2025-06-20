@@ -41,7 +41,13 @@ pipeline {
 
         echo "Attempting to run composer install and debug inside the container..."
 
-        sh 'docker-compose run --rm laravel-api composer install'
+        // --- PREVIOUSLY: You had 'docker-compose run --rm composer ls -al /var/www' here
+        // --- PREVIOUSLY: You had 'docker-compose run --rm composer cat /var/www/composer.json' here
+
+        // Use the dedicated 'composer' service to install PHP dependencies
+        sh 'docker-compose run --rm composer install' // <-- THIS IS THE CORRECT COMMAND
+
+        // php artisan config:clear is a laravel-api specific command, so it runs on laravel-api
         sh 'docker-compose run --rm laravel-api php artisan config:clear'
 
         sh 'docker-compose run --rm laravel-api ls -al /var/www'
