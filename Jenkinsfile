@@ -1,101 +1,217 @@
+// pipeline {
+//   agent {
+//     node {
+//       label 'my-jenkins-agent'
+//     }
+//   }
+
+//   environment {
+//     // Keep only environment variables relevant to direct commands on the agent
+//     // DOCKER_HOST and COMPOSE_FILE are no longer needed if not using docker-compose locally for tests
+//     API_DIR = "sprint5-with-bugs/API"
+//     UI_DIR = "sprint5-with-bugs/UI"
+//   }
+
+//   options {
+//     skipDefaultCheckout true
+//     timestamps()
+//   }
+
+//   stages {
+//     stage('Checkout') {
+//       steps {
+//         script {
+//           checkout scm
+//         }
+//       }
+//     }
+
+//     // --- The following stages are removed as they pertain to local Docker Compose orchestration for testing ---
+//     // stage('Clean Up Previous Run (Pre-Build)')
+//     // stage('Build Services')
+//     // stage('Setup Test Environment')
+
+//     stage('Install Dependencies') {
+//       steps {
+//         echo "Installing PHP dependencies using Composer on the agent..."
+//         dir("${env.API_DIR}") { // Change directory to your Laravel API folder
+//           // sh 'composer install --no-dev --prefer-dist --optimize-autoloader'
+//           sh 'composer install --prefer-dist --optimize-autoloader'
+//           sh 'composer dump-autoload -o'
+//           sh 'php artisan config:clear' // Still useful for clearing Laravel cache on the agent
+//         }
+
+//         echo "Installing Node.js dependencies using npm on the agent..."
+//         dir("${env.UI_DIR}") { // Change directory to your Angular UI folder
+//           sh 'npm ci --legacy-peer-deps' // Continue using this for dependency resolution
+//         }
+//       }
+//     }
+
+//     stage('Run Backend Tests') {
+//       steps {
+//         echo "Running PHP unit/feature tests directly on the agent..."
+//         dir("${env.API_DIR}") {
+//           // IMPORTANT: Your phpunit.xml (or pest.xml) MUST be configured to use
+//           // an in-memory SQLite database (e.g., <env name="DB_CONNECTION" value="sqlite"/>
+//           // <env name="DB_DATABASE" value=":memory:"/>) or mock database connections.
+//           // There will be no running MariaDB container for these tests.
+//           // sh './vendor/bin/pest' // Or './vendor/bin/phpunit'
+//           sh './vendor/bin/phpunit'
+//         }
+//       }
+//     }
+
+//     stage('Run Frontend Tests') {
+//       steps {
+//         echo "Running Playwright tests directly on the agent."
+//         echo "Note: These tests should either be component-level, or configured to hit an external URL (e.g., a staging environment)."
+//         dir("${env.UI_DIR}") {
+//           // Playwright will run, but it will NOT find your local Dockerized API/Web on localhost:8091.
+//           // You must ensure playwright.config.ts points to a valid external URL if it's
+//           // performing end-to-end tests, or these should be pure component tests.
+//           sh 'npx playwright test'
+//         }
+//       }
+//     }
+
+//     // --- If Jenkins is meant to *deploy* your application (like deploy.yml),
+//     //     you would add a 'Deploy' stage here. This would involve commands
+//     //     to push code to a remote server, SSH into it, and potentially
+//     //     run docker-compose commands *on that remote server*.
+//     // stage('Deploy Application') {
+//     //   steps {
+//     //     echo "Triggering remote deployment..."
+//     //     // Example: sh 'ssh user@your-remote-server "cd /path/to/app && docker-compose pull && docker-compose up -d -force-recreate"'
+//     //     // Or use a deployment tool like Capistrano, Deployer, or Ansible.
+//     //   }
+//     // }
+//   }
+
+//   post {
+//     always {
+//       // No local Docker services were brought up, so no need to bring them down.
+//       echo "No local Docker services to bring down."
+//     }
+
+//     failure {
+//       echo '❌ Build or tests failed!'
+//     }
+
+//     success {
+//       echo '✅ CI pipeline completed successfully!'
+//     }
+//   }
+// }
+
 pipeline {
   agent {
     node {
-      label 'my-jenkins-agent'
+      label 'my-jenkins-agent' // Ensure this agent has Docker and Docker Compose installed
     }
   }
 
   environment {
-    // Keep only environment variables relevant to direct commands on the agent
-    // DOCKER_HOST and COMPOSE_FILE are no longer needed if not using docker-compose locally for tests
+    // These paths are relative to the Jenkins workspace root
     API_DIR = "sprint5-with-bugs/API"
     UI_DIR = "sprint5-with-bugs/UI"
+    // COMPOSE_ROOT_DIR is '.' because docker-compose.yml is at the workspace root
+    COMPOSE_ROOT_DIR = "."
+    DOCKER_COMPOSE_FILE = "docker-compose.yml" // Name of your Docker Compose file
   }
 
   options {
-    skipDefaultCheckout true
-    timestamps()
+    skipDefaultCheckout true // Assume Jenkins handles SCM checkout externally
+    timestamps() // Add timestamps to log output for readability
   }
 
   stages {
     stage('Checkout') {
       steps {
         script {
-          checkout scm
+          checkout scm // Ensures the workspace is populated with your code
         }
       }
     }
-
-    // --- The following stages are removed as they pertain to local Docker Compose orchestration for testing ---
-    // stage('Clean Up Previous Run (Pre-Build)')
-    // stage('Build Services')
-    // stage('Setup Test Environment')
 
     stage('Install Dependencies') {
       steps {
         echo "Installing PHP dependencies using Composer on the agent..."
-        dir("${env.API_DIR}") { // Change directory to your Laravel API folder
-          // sh 'composer install --no-dev --prefer-dist --optimize-autoloader'
+        dir("${env.API_DIR}") {
           sh 'composer install --prefer-dist --optimize-autoloader'
           sh 'composer dump-autoload -o'
-          sh 'php artisan config:clear' // Still useful for clearing Laravel cache on the agent
+          sh 'php artisan config:clear'
+          sh 'php artisan cache:clear'
+          sh 'php artisan view:clear'
+          sh 'php artisan route:clear'
         }
 
-        echo "Installing Node.js dependencies using npm on the agent..."
-        dir("${env.UI_DIR}") { // Change directory to your Angular UI folder
-          sh 'npm ci --legacy-peer-deps' // Continue using this for dependency resolution
-        }
-      }
-    }
-
-    stage('Run Backend Tests') {
-      steps {
-        echo "Running PHP unit/feature tests directly on the agent..."
-        dir("${env.API_DIR}") {
-          // IMPORTANT: Your phpunit.xml (or pest.xml) MUST be configured to use
-          // an in-memory SQLite database (e.g., <env name="DB_CONNECTION" value="sqlite"/>
-          // <env name="DB_DATABASE" value=":memory:"/>) or mock database connections.
-          // There will be no running MariaDB container for these tests.
-          // sh './vendor/bin/pest' // Or './vendor/bin/phpunit'
-          sh './vendor/bin/phpunit'
-        }
-      }
-    }
-
-    stage('Run Frontend Tests') {
-      steps {
-        echo "Running Playwright tests directly on the agent."
-        echo "Note: These tests should either be component-level, or configured to hit an external URL (e.g., a staging environment)."
+        echo "Installing Node.js dependencies for UI (e.g., Angular)..."
+        // This is still run from UI_DIR, as your Angular UI's package.json is likely here.
         dir("${env.UI_DIR}") {
-          // Playwright will run, but it will NOT find your local Dockerized API/Web on localhost:8091.
-          // You must ensure playwright.config.ts points to a valid external URL if it's
-          // performing end-to-end tests, or these should be pure component tests.
+          sh 'npm ci --legacy-peer-deps'
+        }
+      }
+    }
+
+    stage('Run Backend Unit Tests') {
+      steps {
+        echo "Running PHP unit/feature tests directly on the agent (using in-memory SQLite)..."
+        dir("${env.API_DIR}") {
+          sh 'APP_ENV=testing ./vendor/bin/phpunit'
+        }
+      }
+    }
+
+    stage('Setup E2E Environment (Docker Compose)') {
+      steps {
+        echo "Starting Docker containers for E2E tests using docker compose..."
+        // Commands run from COMPOSE_ROOT_DIR (which is now '.')
+        dir("${env.COMPOSE_ROOT_DIR}") {
+          sh 'export DISABLE_LOGGING=true'
+          sh 'docker compose -f "${DOCKER_COMPOSE_FILE}" up -d'
+        }
+
+        echo "Waiting for services to become ready (60 seconds)..."
+        sh 'sleep 60s'
+
+        echo "Creating and seeding database for E2E tests..."
+        dir("${env.COMPOSE_ROOT_DIR}") {
+          sh 'docker compose exec -T laravel-api php artisan migrate:refresh --seed'
+        }
+
+        echo "Performing health checks on API (optional, but good for diagnostics)..."
+        sh 'curl -v -X GET "http://localhost:8091/status"'
+        sh '''curl -v -X POST "http://localhost:8091/users/login" \
+          -H "Content-Type: application/json" \
+          --data-raw \'{"email":"customer@practicesoftwaretesting.com","password":"welcome01"}\''''
+      }
+    }
+
+    stage('Run Frontend E2E Tests (Playwright)') {
+      steps {
+        echo "Running Playwright E2E tests against the running Dockerized services."
+        // Playwright needs to be run from the directory where its config file (playwright.config.ts) is,
+        // or where the testDir is relative to the current working directory.
+        // Since playwright.config.ts is now at the workspace root, run it from there.
+        dir("${env.COMPOSE_ROOT_DIR}") { // COMPOSE_ROOT_DIR is '.' (workspace root)
           sh 'npx playwright test'
         }
       }
     }
-
-    // --- If Jenkins is meant to *deploy* your application (like deploy.yml),
-    //     you would add a 'Deploy' stage here. This would involve commands
-    //     to push code to a remote server, SSH into it, and potentially
-    //     run docker-compose commands *on that remote server*.
-    // stage('Deploy Application') {
-    //   steps {
-    //     echo "Triggering remote deployment..."
-    //     // Example: sh 'ssh user@your-remote-server "cd /path/to/app && docker-compose pull && docker-compose up -d -force-recreate"'
-    //     // Or use a deployment tool like Capistrano, Deployer, or Ansible.
-    //   }
-    // }
   }
 
   post {
     always {
-      // No local Docker services were brought up, so no need to bring them down.
-      echo "No local Docker services to bring down."
+      echo "Tearing down Docker containers..."
+      // Commands run from COMPOSE_ROOT_DIR (which is now '.')
+      dir("${env.COMPOSE_ROOT_DIR}") {
+        sh 'docker compose -f "${DOCKER_COMPOSE_FILE}" down -v --remove-orphans'
+      }
     }
 
     failure {
-      echo '❌ Build or tests failed!'
+      echo '❌ CI pipeline completed with failures!'
     }
 
     success {
