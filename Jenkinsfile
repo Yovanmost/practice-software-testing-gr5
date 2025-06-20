@@ -147,7 +147,6 @@ pipeline {
         }
 
         echo "Installing Node.js dependencies for UI (e.g., Angular)..."
-        // This is still run from UI_DIR, as your Angular UI's package.json is likely here.
         dir("${env.UI_DIR}") {
           sh 'npm ci --legacy-peer-deps'
         }
@@ -166,10 +165,10 @@ pipeline {
     stage('Setup E2E Environment (Docker Compose)') {
       steps {
         echo "Starting Docker containers for E2E tests using docker compose..."
-        // Commands run from COMPOSE_ROOT_DIR (which is now '.')
         dir("${env.COMPOSE_ROOT_DIR}") {
           sh 'export DISABLE_LOGGING=true'
-          sh 'docker compose -f "${DOCKER_COMPOSE_FILE}" up -d'
+          // CHANGED: docker compose -> docker-compose
+          sh 'docker-compose -f "${DOCKER_COMPOSE_FILE}" up -d'
         }
 
         echo "Waiting for services to become ready (60 seconds)..."
@@ -177,7 +176,8 @@ pipeline {
 
         echo "Creating and seeding database for E2E tests..."
         dir("${env.COMPOSE_ROOT_DIR}") {
-          sh 'docker compose exec -T laravel-api php artisan migrate:refresh --seed'
+          // CHANGED: docker compose -> docker-compose
+          sh 'docker-compose exec -T laravel-api php artisan migrate:refresh --seed'
         }
 
         echo "Performing health checks on API (optional, but good for diagnostics)..."
@@ -191,10 +191,7 @@ pipeline {
     stage('Run Frontend E2E Tests (Playwright)') {
       steps {
         echo "Running Playwright E2E tests against the running Dockerized services."
-        // Playwright needs to be run from the directory where its config file (playwright.config.ts) is,
-        // or where the testDir is relative to the current working directory.
-        // Since playwright.config.ts is now at the workspace root, run it from there.
-        dir("${env.COMPOSE_ROOT_DIR}") { // COMPOSE_ROOT_DIR is '.' (workspace root)
+        dir("${env.COMPOSE_ROOT_DIR}") { // This is where playwright.config.ts now lives
           sh 'npx playwright test'
         }
       }
@@ -204,9 +201,9 @@ pipeline {
   post {
     always {
       echo "Tearing down Docker containers..."
-      // Commands run from COMPOSE_ROOT_DIR (which is now '.')
       dir("${env.COMPOSE_ROOT_DIR}") {
-        sh 'docker compose -f "${DOCKER_COMPOSE_FILE}" down -v --remove-orphans'
+        // CHANGED: docker compose -> docker-compose
+        sh 'docker-compose -f "${DOCKER_COMPOSE_FILE}" down -v --remove-orphans'
       }
     }
 
