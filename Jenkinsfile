@@ -27,6 +27,15 @@ pipeline {
       }
     }
 
+    stage('Clean Up Previous Run (Pre-Build)') { // New stage for proactive cleanup
+      steps {
+        echo "Cleaning up any old Docker services before building..."
+        // Use || true to prevent the pipeline from failing if no services are running
+        // or if docker-compose.yml isn't found yet (e.g. first run or fresh checkout)
+        sh "docker-compose down -v --remove-orphans || true"
+      }
+    }
+
     stage('Build Services') {
       steps {
         sh 'pwd' // Confirm current working directory
