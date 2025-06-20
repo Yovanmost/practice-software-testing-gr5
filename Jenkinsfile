@@ -179,6 +179,11 @@ pipeline {
           sh 'docker-compose -f "${DOCKER_COMPOSE_FILE}" down -v --remove-orphans || true'
         }
 
+        echo "Displaying the docker-compose.yml content being used by this Jenkins build:"
+        dir("${env.COMPOSE_ROOT_DIR}") {
+          sh 'cat "${DOCKER_COMPOSE_FILE}"'
+        }
+
         echo "Starting Docker containers for E2E tests using docker-compose..."
         dir("${env.COMPOSE_ROOT_DIR}") {
           sh 'export DISABLE_LOGGING=true'
