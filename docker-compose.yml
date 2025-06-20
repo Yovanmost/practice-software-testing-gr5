@@ -7,7 +7,7 @@ services:
       dockerfile: app.docker
     working_dir: /var/www
     volumes:
-      - ./${SPRINT_FOLDER}/API:/var/www:cached
+      - ./sprint5-with-bugs/API:/var/www:cached
     environment:
       - "PHP_OPCACHE_VALIDATE_TIMESTAMPS=1"
       - "DB_PORT=3306"
@@ -21,7 +21,7 @@ services:
       dockerfile: ui.docker
     working_dir: /app
     volumes:
-      - ./${SPRINT_FOLDER}/UI:/app:cached
+      - ./sprint5-with-bugs/UI:/app:cached
     ports:
       - 4200:4200
     command: >
