@@ -6,9 +6,8 @@ pipeline {
   }
 
   environment {
-    COMPOSE_FILE = 'docker-compose.yml'
-    DOCKER_HOST = "tcp://docker-tcp-relay:2375"
-    // Define the path to your API and UI directories relative to the workspace root
+    // Keep only environment variables relevant to direct commands on the agent
+    // DOCKER_HOST and COMPOSE_FILE are no longer needed if not using docker-compose locally for tests
     API_DIR = "sprint5-with-bugs/API"
     UI_DIR = "sprint5-with-bugs/UI"
   }
@@ -27,95 +26,70 @@ pipeline {
       }
     }
 
-    stage('Clean Up Previous Run (Pre-Build)') { // New stage for proactive cleanup
-      steps {
-        echo "Cleaning up any old Docker services before building..."
-        // Use || true to prevent the pipeline from failing if no services are running
-        // or if docker-compose.yml isn't found yet (e.g. first run or fresh checkout)
-        sh "docker-compose down -v --remove-orphans || true"
-      }
-    }
-
-    stage('Build Services') {
-      steps {
-        sh 'pwd' // Confirm current working directory
-        sh 'ls -l' // List contents of the workspace root
-        sh 'cat docker-compose.yml' // Keep this for verification if needed
-        // Build your application images first
-        sh 'docker-compose build --no-cache'
-      }
-    }
+    // --- The following stages are removed as they pertain to local Docker Compose orchestration for testing ---
+    // stage('Clean Up Previous Run (Pre-Build)')
+    // stage('Build Services')
+    // stage('Setup Test Environment')
 
     stage('Install Dependencies') {
       steps {
         echo "Installing PHP dependencies using Composer on the agent..."
         dir("${env.API_DIR}") { // Change directory to your Laravel API folder
-          sh 'composer install --no-dev --prefer-dist --optimize-autoloader' // Or 'composer update' as per deploy.yml
-          sh 'composer dump-autoload -o' // As seen in deploy.yml
-          sh 'php artisan config:clear' // Now this runs on the agent too, directly
+          sh 'composer install --no-dev --prefer-dist --optimize-autoloader'
+          sh 'composer dump-autoload -o'
+          sh 'php artisan config:clear' // Still useful for clearing Laravel cache on the agent
         }
 
         echo "Installing Node.js dependencies using npm on the agent..."
         dir("${env.UI_DIR}") { // Change directory to your Angular UI folder
-          // sh 'npm ci' // Use npm ci for clean, reproducible installs like GitHub Actions
-          sh 'npm ci --legacy-peer-deps' // This is often a safer choice than --force for peer dep issues
-          // If npm ci fails due to peer deps, you might need 'npm install --force' or 'npm install --legacy-peer-deps'
+          sh 'npm ci --legacy-peer-deps' // Continue using this for dependency resolution
         }
       }
     }
 
-    stage('Setup Test Environment') {
-        steps {
-            echo "Starting Docker services for testing..."
-            sh 'docker-compose up -d'
-            sh 'sleep 60s' // Give services time to start, especially DB
-            echo "Creating and seeding database..."
-            sh 'docker-compose exec -T laravel-api php artisan migrate:refresh --seed'
-            echo "Running smoke tests with curl..."
-            sh 'curl -v -X GET http://localhost:8091/status || echo "API /status endpoint failed!"'
-            sh """
-                curl -v -X POST 'http://localhost:8091/users/login' \\
-                -H 'Content-Type: application/json' \\
-                --data-raw '{"email":"customer@practicesoftwaretesting.com","password":"welcome01"}' || echo "API login endpoint failed!"
-            """
-        }
-    }
-
     stage('Run Backend Tests') {
       steps {
-        // Run tests directly on the agent, as PHPUnit/Pest are now accessible
+        echo "Running PHP unit/feature tests directly on the agent..."
         dir("${env.API_DIR}") {
-          // You could add logic here similar to deploy.yml for pest/phpunit based on sprint
-          sh './vendor/bin/pest' // Or './vendor/bin/phpunit' if you use Pest exclusively for sprint 5
+          // IMPORTANT: Your phpunit.xml (or pest.xml) MUST be configured to use
+          // an in-memory SQLite database (e.g., <env name="DB_CONNECTION" value="sqlite"/>
+          // <env name="DB_DATABASE" value=":memory:"/>) or mock database connections.
+          // There will be no running MariaDB container for these tests.
+          sh './vendor/bin/pest' // Or './vendor/bin/phpunit'
         }
       }
     }
 
     stage('Run Frontend Tests') {
       steps {
-        // This stage will now run Playwright tests from the agent, against the running Dockerized app
-        // You might need additional Playwright setup on the agent if you haven't done it yet
-        // (similar to how GHA installs browser binaries)
-        dir("${env.UI_DIR}") { // Assuming playwright.config.ts and tests are in the UI directory
-            // GHA uses 'npx playwright install-deps' and 'npx playwright test'
-            // Your agent Dockerfile already installed node, npm.
-            // You might need to add `npx playwright install --with-deps` to your agent Dockerfile
-            // or run it here if you want to manage browser binaries per build.
-            sh 'npx playwright test'
+        echo "Running Playwright tests directly on the agent."
+        echo "Note: These tests should either be component-level, or configured to hit an external URL (e.g., a staging environment)."
+        dir("${env.UI_DIR}") {
+          // Playwright will run, but it will NOT find your local Dockerized API/Web on localhost:8091.
+          // You must ensure playwright.config.ts points to a valid external URL if it's
+          // performing end-to-end tests, or these should be pure component tests.
+          sh 'npx playwright test'
         }
       }
     }
 
-    // You can potentially remove the 'Up and Ping' stage if 'Setup Test Environment' handles it.
-    // I've incorporated the 'up -d' and curl checks into 'Setup Test Environment'.
-
+    // --- If Jenkins is meant to *deploy* your application (like deploy.yml),
+    //     you would add a 'Deploy' stage here. This would involve commands
+    //     to push code to a remote server, SSH into it, and potentially
+    //     run docker-compose commands *on that remote server*.
+    // stage('Deploy Application') {
+    //   steps {
+    //     echo "Triggering remote deployment..."
+    //     // Example: sh 'ssh user@your-remote-server "cd /path/to/app && docker-compose pull && docker-compose up -d -force-recreate"'
+    //     // Or use a deployment tool like Capistrano, Deployer, or Ansible.
+    //   }
+    // }
   }
 
   post {
     always {
-      // Ensure containers are brought down even if stages fail
-      echo "Bringing down Docker services..."
-      sh 'docker-compose down -v --remove-orphans' // Added --remove-orphans for good measure
+      // No local Docker services were brought up, so no need to bring them down.
+      echo "No local Docker services to bring down."
     }
 
     failure {
