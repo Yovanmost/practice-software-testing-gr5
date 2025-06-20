@@ -26,7 +26,10 @@ pipeline {
 
     stage('Build Services') {
       steps {
+        // Confirm we are in the correct directory for docker-compose
         dir('practice-ci') {
+          sh 'pwd' // Confirm current working directory
+          sh 'ls -l' // List contents of practice-ci to see docker-compose.yml and sprint5-with-bugs
           sh 'docker-compose build --no-cache'
         }
       }
@@ -35,7 +38,16 @@ pipeline {
     stage('Install Dependencies') {
       steps {
         dir('practice-ci') {
-          sh 'ls -l sprint5-with-bugs/API/composer.json || echo "composer.json NOT FOUND in mounted path"'
+          // Confirm composer.json is visible from the Jenkins agent's perspective
+          sh 'ls -l sprint5-with-bugs/API/composer.json || echo "composer.json NOT FOUND in JENKINS WORKSPACE"'
+
+          // --- ADDED DEBUGGING STEPS ---
+          echo "Attempting to run composer install and debug inside the container..."
+          // Inspect the contents of /var/www *inside the composer container*
+          sh 'docker-compose run --rm composer ls -al /var/www'
+          // Try to specifically cat the composer.json file inside the container
+          sh 'docker-compose run --rm composer cat /var/www/composer.json || echo "composer.json not accessible inside composer container"'
+          // --- END ADDED DEBUGGING STEPS ---
 
           sh 'docker-compose run --rm composer install'
           sh 'docker-compose run --rm laravel-api php artisan config:clear'
