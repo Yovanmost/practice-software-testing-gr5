@@ -33,6 +33,8 @@ pipeline {
 
     stage('Install Dependencies') {
     steps {
+        sh 'ls -l sprint5-with-bugs/API/composer.json || echo "composer.json NOT FOUND in mounted path"'
+
         sh 'docker-compose run --rm composer install'
         sh 'docker-compose run --rm laravel-api php artisan config:clear'
 
