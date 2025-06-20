@@ -182,7 +182,8 @@ pipeline {
         echo "Starting Docker containers for E2E tests using docker-compose..."
         dir("${env.COMPOSE_ROOT_DIR}") {
           sh 'export DISABLE_LOGGING=true'
-          sh 'docker-compose -f "${DOCKER_COMPOSE_FILE}" up -d'
+          // sh 'docker-compose -f "${DOCKER_COMPOSE_FILE}" up -d'
+          sh "API_SOURCE_PATH=${env.API_SOURCE_PATH} docker-compose -f \"${env.DOCKER_COMPOSE_FILE}\" up -d"
         }
 
         echo "Waiting for services to become ready (60 seconds)..."
