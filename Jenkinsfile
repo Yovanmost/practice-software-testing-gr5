@@ -201,6 +201,10 @@ pipeline {
         echo "Waiting for services to become ready (60 seconds)..."
         sh 'sleep 60s'
 
+        echo "🔧 Fixing /var/www ownership inside laravel-api container..."
+        sh 'docker-compose exec -T laravel-api chown -R 1000:1000 /var/www'
+
+
         dir("${WORKSPACE}") {
             echo "Listing contents of /var/www in laravel-api container..."
             sh 'docker-compose exec -T laravel-api ls -la /var/www'
