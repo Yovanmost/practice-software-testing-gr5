@@ -120,6 +120,7 @@ pipeline {
     DOCKER_COMPOSE_FILE = "docker-compose.yml" // Name of your Docker Compose file
     // NEW: Absolute path for the API source code for Docker Compose volume mount
     API_SOURCE_PATH = "${WORKSPACE}/${API_DIR}" // <--- ADD THIS LINE
+    SPRINT_FOLDER = "sprint5-with-bugs"
   }
 
   options {
