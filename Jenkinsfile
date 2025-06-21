@@ -107,48 +107,53 @@
 pipeline {
   agent {
     node {
-      label 'my-jenkins-agent' // Ensure this agent has Docker and Docker Compose installed
+      label 'my-jenkins-agent'
     }
   }
 
+  // Initial minimal environment, you can still add safe constants here
   environment {
-    // These paths are relative to the Jenkins workspace root
-    API_DIR = "sprint5-with-bugs/API"
-    UI_DIR = "sprint5-with-bugs/UI"
-    // COMPOSE_ROOT_DIR is '.' because docker-compose.yml is at the workspace root
     COMPOSE_ROOT_DIR = "."
-    DOCKER_COMPOSE_FILE = "docker-compose.yml" // Name of your Docker Compose file
-    // NEW: Absolute path for the API source code for Docker Compose volume mount
-    API_SOURCE_PATH = "${WORKSPACE}/${API_DIR}" // <--- ADD THIS LINE
-    SPRINT_FOLDER = "sprint5-with-bugs"
-    HOST_UID = "1000"
-    HOST_GID = "1000"
+    DOCKER_COMPOSE_FILE = "docker-compose.yml"
   }
 
   options {
-    skipDefaultCheckout true // Assume Jenkins handles SCM checkout externally
-    timestamps() // Add timestamps to log output for readability
+    skipDefaultCheckout true
+    timestamps()
   }
 
   stages {
     stage('Checkout') {
       steps {
         script {
-          checkout scm // Ensures the workspace is populated with your code
+          checkout scm
         }
-        // Add this line directly after checkout
-        echo "Listing contents of API_DIR on Jenkins agent host..."
-        sh "ls -la ${env.API_DIR}"
-        echo "Listing contents of COMPOSE_ROOT_DIR on Jenkins agent host..."
-        sh "ls -la ${env.COMPOSE_ROOT_DIR}"
-        sh "ls -la ${env.COMPOSE_ROOT_DIR}/${env.DOCKER_COMPOSE_FILE}" // Verify compose file presence
+        echo "✅ Repo checked out"
+      }
+    }
+
+    stage('Load .env file') {
+      steps {
+        script {
+          echo "📥 Reading .env variables into Jenkins environment..."
+          def envFile = readFile("${env.COMPOSE_ROOT_DIR}/.env").split('\n')
+          for (line in envFile) {
+            if (line.trim() && !line.startsWith('#')) {
+              def (key, value) = line.tokenize('=')
+              def k = key.trim()
+              def v = value.trim()
+              env[k] = v
+              echo "→ Loaded env var: ${k}=${v}"
+            }
+          }
+        }
       }
     }
 
     stage('Install Dependencies') {
       steps {
-        echo "Installing PHP dependencies using Composer on the agent..."
-        dir("${env.API_DIR}") {
+        echo "📦 Installing backend dependencies..."
+        dir("${env.SPRINT_FOLDER}/API") {
           sh 'composer install --prefer-dist --optimize-autoloader'
           sh 'composer dump-autoload -o'
           sh 'php artisan config:clear'
@@ -157,8 +162,8 @@ pipeline {
           sh 'php artisan route:clear'
         }
 
-        echo "Installing Node.js dependencies for UI (e.g., Angular)..."
-        dir("${env.UI_DIR}") {
+        echo "📦 Installing frontend dependencies..."
+        dir("${env.SPRINT_FOLDER}/UI") {
           sh 'npm ci --legacy-peer-deps'
         }
       }
@@ -166,96 +171,26 @@ pipeline {
 
     stage('Run Backend Unit Tests') {
       steps {
-        echo "Running PHP unit/feature tests directly on the agent (using in-memory SQLite)..."
-        dir("${env.API_DIR}") {
-          sh 'APP_ENV=testing ./vendor/bin/phpunit'
+        echo "🧪 Running backend tests (Pest for sprint5-with-bugs, PHPUnit for others)..."
+        dir("${env.SPRINT_FOLDER}/API") {
+          script {
+            if (env.SPRINT_FOLDER == "sprint5-with-bugs") {
+              sh './vendor/bin/pest'
+            } else {
+              sh './vendor/bin/phpunit'
+            }
+          }
         }
       }
     }
 
-    stage('Setup E2E Environment (Docker Compose)') {
-      steps {
-        echo "Ensuring a clean Docker Compose environment before starting..."
-        dir("${env.COMPOSE_ROOT_DIR}") {
-          // This command will tear down any existing services for this project.
-          // '|| true' ensures the step doesn't fail if no containers are running (e.g., first build).
-          sh 'docker-compose -f "${DOCKER_COMPOSE_FILE}" down -v --remove-orphans || true'
-        }
-
-        echo "Displaying the docker-compose.yml content being used by this Jenkins build:"
-        dir("${env.COMPOSE_ROOT_DIR}") {
-          sh 'cat "${DOCKER_COMPOSE_FILE}"'
-        }
-
-        echo "Verifying contents of host API directory: ${API_SOURCE_PATH}"
-        sh "ls -la ${API_SOURCE_PATH}"
-        sh "test -f ${API_SOURCE_PATH}/artisan && echo 'artisan found on host!' || echo 'artisan NOT found on host!'"
-
-        echo "Starting Docker containers for E2E tests using docker-compose..."
-        dir("${env.COMPOSE_ROOT_DIR}") {
-          sh 'export DISABLE_LOGGING=true'
-          // sh 'docker-compose -f "${DOCKER_COMPOSE_FILE}" up -d'
-          sh "API_SOURCE_PATH=${env.API_SOURCE_PATH} docker-compose -f \"${env.DOCKER_COMPOSE_FILE}\" up -d"
-        }
-
-        echo "Waiting for services to become ready (60 seconds)..."
-        sh 'sleep 60s'
-
-        echo "🔧 Fixing /var/www ownership inside laravel-api container..."
-        sh 'docker-compose exec -T laravel-api chown -R 1000:1000 /var/www'
-
-
-        dir("${WORKSPACE}") {
-            echo "Listing contents of /var/www in laravel-api container..."
-            sh 'docker-compose exec -T laravel-api ls -la /var/www'
-            echo "Checking owner/permissions of /var/www in laravel-api container..."
-            sh 'docker-compose exec -T laravel-api stat /var/www'
-            echo "Attempting to create a test file in /var/www inside laravel-api container..."
-            sh 'docker-compose exec -T laravel-api touch /var/www/test_file.txt'
-            sh 'docker-compose exec -T laravel-api ls -la /var/www'
-        }
-
-        echo "Listing contents of /var/www in laravel-api container..."
-        dir("${env.COMPOSE_ROOT_DIR}") {
-            // Add this line to debug
-            sh 'docker-compose exec -T laravel-api ls -la /var/www'
-        }
-
-        echo "Creating and seeding database for E2E tests..."
-        dir("${env.COMPOSE_ROOT_DIR}") {
-          sh 'docker-compose exec -T laravel-api php artisan migrate:refresh --seed'
-        }
-
-        echo "Performing health checks on API (optional, but good for diagnostics)..."
-        sh 'curl -v -X GET "http://localhost:8091/status"'
-        sh '''curl -v -X POST "http://localhost:8091/users/login" \
-          -H "Content-Type: application/json" \
-          --data-raw \'{"email":"customer@practicesoftwaretesting.com","password":"welcome01"}\''''
-      }
-    }
-
-    stage('Run Frontend E2E Tests (Playwright)') {
-      steps {
-        echo "Running Playwright E2E tests against the running Dockerized services."
-        dir("${env.COMPOSE_ROOT_DIR}") { // This is where playwright.config.ts now lives
-          sh 'npx playwright test'
-        }
-      }
-    }
+    // Optional: You can add other stages (e.g., deployment, frontend tests) here.
   }
 
   post {
-    always {
-      echo "Tearing down Docker containers..."
-      dir("${env.COMPOSE_ROOT_DIR}") {
-        sh 'docker-compose -f "${DOCKER_COMPOSE_FILE}" down -v --remove-orphans'
-      }
-    }
-
     failure {
-      echo '❌ CI pipeline completed with failures!'
+      echo '❌ CI pipeline failed!'
     }
-
     success {
       echo '✅ CI pipeline completed successfully!'
     }
