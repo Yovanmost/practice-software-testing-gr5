@@ -39,6 +39,20 @@ module.exports = function (config) {
     autoWatch: true,
     browsers: ['Chrome'],
     singleRun: false,
-    restartOnFileChange: true
+    restartOnFileChange: true,
+
+    // === FIX LOCATION: ADDED customLaunchers FOR CI EXECUTION ===
+    customLaunchers: {
+      ChromeHeadlessCI: { // This is the name you'll use in your Jenkinsfile's --browsers flag
+        base: 'ChromeHeadless', // Base this custom launcher on Karma's built-in ChromeHeadless
+        flags: [
+          '--no-sandbox',             // Essential for running in Docker environments
+          '--disable-gpu',            // Recommended for headless environments
+          '--disable-dev-shm-usage'   // Addresses potential memory issues in Docker containers
+                                      // with default /dev/shm size
+        ]
+      }
+    }
+    // === END FIX LOCATION ===
   });
 };
