@@ -83,6 +83,11 @@ RUN apt-get update && apt-get install -y \
     gnupg2 \
     lsb-release \
     ca-certificates \
+    # --
+    xvfb \
+    libxshmfence1 \
+    fonts-liberation \
+    # --
     sudo \
     && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y nodejs \
