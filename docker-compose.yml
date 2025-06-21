@@ -14,7 +14,7 @@ services:
       - "DB_HOST=mariadb"
       - "host=localhost"
       - DISABLE_LOGGING=${DISABLE_LOGGING}
-    user: "${HOST_UID}:${HOST_GID}"  # ✅ Ensure write access from container
+    # user: "${HOST_UID}:${HOST_GID}"  # ✅ Ensure write access from container
 
   angular-ui:
     build:
