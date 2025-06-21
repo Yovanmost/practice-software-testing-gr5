@@ -7,9 +7,7 @@ services:
       dockerfile: app.docker
     working_dir: /var/www
     volumes:
-      # - ./sprint5-with-bugs/API:/var/www:cached
-      # - ${API_SOURCE_PATH}:/var/www:cached
-      - ${API_SOURCE_PATH}:/var/www
+      - ./${SPRINT_FOLDER}/API:/var/www:cached
     environment:
       - "PHP_OPCACHE_VALIDATE_TIMESTAMPS=1"
       - "DB_PORT=3306"
@@ -23,7 +21,7 @@ services:
       dockerfile: ui.docker
     working_dir: /app
     volumes:
-      - ./sprint5-with-bugs/UI:/app:cached
+      - ./${SPRINT_FOLDER}/UI:/app:cached
     ports:
       - 4200:4200
     command: >
@@ -35,12 +33,8 @@ services:
       context: ./_docker
       dockerfile: web.docker
     working_dir: /var/www
-    # volumes:
-    volumes_from:
-      - laravel-api
-      # - laravel-api:/var/www
-      # - phpmyadmindata:/var/www/phpmyadmin
     volumes:
+      - laravel-api:/var/www
       - phpmyadmindata:/var/www/phpmyadmin
     ports:
       - 8091:80
@@ -66,24 +60,12 @@ services:
       - "host=localhost"
       - DISABLE_LOGGING=${DISABLE_LOGGING}
 
-  # composer:
-  #   image: composer:2.6.6
-  #   command: install --no-dev --optimize-autoloader --ignore-platform-req=ext-ffi && chown -R www-data /var/www && chmod 777 /var/www
-  #   volumes_from:
-  #     - laravel-api
-  #   working_dir: /var/www
-
   composer:
     image: composer:2.6.6
+    command: install --no-dev --optimize-autoloader --ignore-platform-req=ext-ffi && chown -R www-data /var/www && chmod 777 /var/www
+    volumes_from:
+      - laravel-api
     working_dir: /var/www
-    volumes:
-      # - ./sprint5-with-bugs/API:/var/www:cached
-      - ${API_SOURCE_PATH}:/var/www
-    command: >
-      bash -c "composer install --no-dev --optimize-autoloader --ignore-platform-req=ext-ffi &&
-              chown -R www-data /var/www &&
-              chmod 777 /var/www"
-
 
   # The Database
   mariadb:
@@ -117,4 +99,4 @@ services:
 volumes:
   db:
   phpmyadmindata:
-  # laravel-api:
+  laravel-api:
