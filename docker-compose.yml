@@ -8,7 +8,8 @@ services:
     working_dir: /var/www
     volumes:
       # - ./sprint5-with-bugs/API:/var/www:cached
-      - ${API_SOURCE_PATH}:/var/www:cached
+      # - ${API_SOURCE_PATH}:/var/www:cached
+      - ${API_SOURCE_PATH}:/var/www
     environment:
       - "PHP_OPCACHE_VALIDATE_TIMESTAMPS=1"
       - "DB_PORT=3306"
@@ -34,8 +35,12 @@ services:
       context: ./_docker
       dockerfile: web.docker
     working_dir: /var/www
+    # volumes:
+    volumes_from:
+      - laravel-api
+      # - laravel-api:/var/www
+      # - phpmyadmindata:/var/www/phpmyadmin
     volumes:
-      - laravel-api:/var/www
       - phpmyadmindata:/var/www/phpmyadmin
     ports:
       - 8091:80
