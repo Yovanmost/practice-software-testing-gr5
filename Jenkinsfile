@@ -107,53 +107,45 @@
 pipeline {
   agent {
     node {
-      label 'my-jenkins-agent'
+      label 'my-jenkins-agent' // Ensure this agent has Docker and Docker Compose installed
     }
   }
 
-  // Initial minimal environment, you can still add safe constants here
   environment {
+    // These paths are relative to the Jenkins workspace root
+    API_DIR = "sprint5-with-bugs/API"
+    UI_DIR = "sprint5-with-bugs/UI"
+    // COMPOSE_ROOT_DIR is '.' because docker-compose.yml is at the workspace root
     COMPOSE_ROOT_DIR = "."
-    DOCKER_COMPOSE_FILE = "docker-compose.yml"
+    DOCKER_COMPOSE_FILE = "docker-compose.yml" // Name of your Docker Compose file
+    API_SOURCE_PATH = "${WORKSPACE}/${API_DIR}" // <--- ADD THIS LINE
+    SPRINT_FOLDER = "sprint5-with-bugs"
   }
 
   options {
-    skipDefaultCheckout true
-    timestamps()
+    skipDefaultCheckout true // Assume Jenkins handles SCM checkout externally
+    timestamps() // Add timestamps to log output for readability
   }
 
   stages {
     stage('Checkout') {
       steps {
         script {
-          checkout scm
+          checkout scm // Ensures the workspace is populated with your code
         }
-        echo "✅ Repo checked out"
-      }
-    }
-
-    stage('Load .env file') {
-      steps {
-        script {
-          echo "📥 Reading .env variables into Jenkins environment..."
-          def envFile = readFile("${env.COMPOSE_ROOT_DIR}/.env").split('\n')
-          for (line in envFile) {
-            if (line.trim() && !line.startsWith('#')) {
-              def (key, value) = line.tokenize('=')
-              def k = key.trim()
-              def v = value.trim()
-              env[k] = v
-              echo "→ Loaded env var: ${k}=${v}"
-            }
-          }
-        }
+        // Add this line directly after checkout
+        echo "Listing contents of API_DIR on Jenkins agent host..."
+        sh "ls -la ${env.API_DIR}"
+        echo "Listing contents of COMPOSE_ROOT_DIR on Jenkins agent host..."
+        sh "ls -la ${env.COMPOSE_ROOT_DIR}"
+        sh "ls -la ${env.COMPOSE_ROOT_DIR}/${env.DOCKER_COMPOSE_FILE}" // Verify compose file presence
       }
     }
 
     stage('Install Dependencies') {
       steps {
-        echo "📦 Installing backend dependencies..."
-        dir("${env.SPRINT_FOLDER}/API") {
+        echo "Installing PHP dependencies using Composer on the agent..."
+        dir("${env.API_DIR}") {
           sh 'composer install --prefer-dist --optimize-autoloader'
           sh 'composer dump-autoload -o'
           sh 'php artisan config:clear'
@@ -162,8 +154,8 @@ pipeline {
           sh 'php artisan route:clear'
         }
 
-        echo "📦 Installing frontend dependencies..."
-        dir("${env.SPRINT_FOLDER}/UI") {
+        echo "Installing Node.js dependencies for UI (e.g., Angular)..."
+        dir("${env.UI_DIR}") {
           sh 'npm ci --legacy-peer-deps'
         }
       }
@@ -171,26 +163,25 @@ pipeline {
 
     stage('Run Backend Unit Tests') {
       steps {
-        echo "🧪 Running backend tests (Pest for sprint5-with-bugs, PHPUnit for others)..."
-        dir("${env.SPRINT_FOLDER}/API") {
-          script {
-            if (env.SPRINT_FOLDER == "sprint5-with-bugs") {
-              sh './vendor/bin/pest'
-            } else {
-              sh './vendor/bin/phpunit'
-            }
-          }
+        echo "Running PHP unit/feature tests directly on the agent (using in-memory SQLite)..."
+        dir("${env.API_DIR}") {
+          sh 'APP_ENV=testing ./vendor/bin/phpunit'
         }
       }
     }
 
-    // Optional: You can add other stages (e.g., deployment, frontend tests) here.
-  }
-
   post {
-    failure {
-      echo '❌ CI pipeline failed!'
+    always {
+      echo "Tearing down Docker containers..."
+      dir("${env.COMPOSE_ROOT_DIR}") {
+        sh 'docker-compose -f "${DOCKER_COMPOSE_FILE}" down -v --remove-orphans'
+      }
     }
+
+    failure {
+      echo '❌ CI pipeline completed with failures!'
+    }
+
     success {
       echo '✅ CI pipeline completed successfully!'
     }
