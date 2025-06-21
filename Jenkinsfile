@@ -118,6 +118,7 @@ pipeline {
     // COMPOSE_ROOT_DIR is '.' because docker-compose.yml is at the workspace root
     COMPOSE_ROOT_DIR = "."
     DOCKER_COMPOSE_FILE = "docker-compose.yml" // Name of your Docker Compose file
+    // NEW: Absolute path for the API source code for Docker Compose volume mount
     API_SOURCE_PATH = "${WORKSPACE}/${API_DIR}" // <--- ADD THIS LINE
     SPRINT_FOLDER = "sprint5-with-bugs"
   }
@@ -169,6 +170,77 @@ pipeline {
         }
       }
     }
+
+    // stage('Setup E2E Environment (Docker Compose)') {
+    //   steps {
+    //     echo "Ensuring a clean Docker Compose environment before starting..."
+    //     dir("${env.COMPOSE_ROOT_DIR}") {
+    //       // This command will tear down any existing services for this project.
+    //       // '|| true' ensures the step doesn't fail if no containers are running (e.g., first build).
+    //       sh 'docker-compose -f "${DOCKER_COMPOSE_FILE}" down -v --remove-orphans || true'
+    //     }
+
+    //     echo "Displaying the docker-compose.yml content being used by this Jenkins build:"
+    //     dir("${env.COMPOSE_ROOT_DIR}") {
+    //       sh 'cat "${DOCKER_COMPOSE_FILE}"'
+    //     }
+
+    //     echo "Verifying contents of host API directory: ${API_SOURCE_PATH}"
+    //     sh "ls -la ${API_SOURCE_PATH}"
+    //     sh "test -f ${API_SOURCE_PATH}/artisan && echo 'artisan found on host!' || echo 'artisan NOT found on host!'"
+
+    //     echo "Starting Docker containers for E2E tests using docker-compose..."
+    //     dir("${env.COMPOSE_ROOT_DIR}") {
+    //       sh 'export DISABLE_LOGGING=true'
+    //       // sh 'docker-compose -f "${DOCKER_COMPOSE_FILE}" up -d'
+    //       sh "API_SOURCE_PATH=${env.API_SOURCE_PATH} docker-compose -f \"${env.DOCKER_COMPOSE_FILE}\" up -d"
+    //     }
+
+    //     echo "Waiting for services to become ready (60 seconds)..."
+    //     sh 'sleep 60s'
+
+    //     echo "🔧 Fixing /var/www ownership inside laravel-api container..."
+    //     sh 'docker-compose exec -T laravel-api chown -R 1000:1000 /var/www'
+
+
+    //     dir("${WORKSPACE}") {
+    //         echo "Listing contents of /var/www in laravel-api container..."
+    //         sh 'docker-compose exec -T laravel-api ls -la /var/www'
+    //         echo "Checking owner/permissions of /var/www in laravel-api container..."
+    //         sh 'docker-compose exec -T laravel-api stat /var/www'
+    //         echo "Attempting to create a test file in /var/www inside laravel-api container..."
+    //         sh 'docker-compose exec -T laravel-api touch /var/www/test_file.txt'
+    //         sh 'docker-compose exec -T laravel-api ls -la /var/www'
+    //     }
+
+    //     echo "Listing contents of /var/www in laravel-api container..."
+    //     dir("${env.COMPOSE_ROOT_DIR}") {
+    //         // Add this line to debug
+    //         sh 'docker-compose exec -T laravel-api ls -la /var/www'
+    //     }
+
+    //     echo "Creating and seeding database for E2E tests..."
+    //     dir("${env.COMPOSE_ROOT_DIR}") {
+    //       sh 'docker-compose exec -T laravel-api php artisan migrate:refresh --seed'
+    //     }
+
+    //     echo "Performing health checks on API (optional, but good for diagnostics)..."
+    //     sh 'curl -v -X GET "http://localhost:8091/status"'
+    //     sh '''curl -v -X POST "http://localhost:8091/users/login" \
+    //       -H "Content-Type: application/json" \
+    //       --data-raw \'{"email":"customer@practicesoftwaretesting.com","password":"welcome01"}\''''
+    //   }
+    // }
+
+    // stage('Run Frontend E2E Tests (Playwright)') {
+    //   steps {
+    //     echo "Running Playwright E2E tests against the running Dockerized services."
+    //     dir("${env.COMPOSE_ROOT_DIR}") { // This is where playwright.config.ts now lives
+    //       sh 'npx playwright test'
+    //     }
+    //   }
+    // }
+  }
 
   post {
     always {
