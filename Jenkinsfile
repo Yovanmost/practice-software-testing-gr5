@@ -74,7 +74,7 @@ pipeline {
         stage('Run Frontend Unit Tests (Karma/Jasmine)') {
             steps {
                 echo "Executing Angular unit tests using Karma and ChromeHeadless..."
-                dir("sprint5/UI") {
+                dir("${env.UI_DIR}") {
                     // 'xvfb-run' provides a virtual display for ChromeHeadless, crucial on headless servers.
                     // '--watch=false' ensures tests run once and exit.
                     // '--browsers=ChromeHeadless' explicitly tells Karma to use headless Chrome.
