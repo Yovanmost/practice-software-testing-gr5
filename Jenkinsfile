@@ -242,11 +242,11 @@ pipeline {
     // }
 
     stage('Run Frontend Unit Tests') {
-      agent {
-        docker {
-          image 'node:18' // Node.js v18 is compatible with Angular 15
-        }
-      }
+      // agent {
+      //   docker {
+      //     image 'node:18' // Node.js v18 is compatible with Angular 15
+      //   }
+      // }
       environment {
         UI_DIR = 'sprint5/UI'
       }
