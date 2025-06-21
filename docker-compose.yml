@@ -14,7 +14,7 @@ services:
       - "DB_HOST=mariadb"
       - "host=localhost"
       - DISABLE_LOGGING=${DISABLE_LOGGING}
-    # user: root
+    # user: root # This should remain commented out
 
   angular-ui:
     build:
@@ -35,8 +35,7 @@ services:
       dockerfile: web.docker
     working_dir: /var/www
     volumes:
-      # - laravel-api:/var/www
-      - ./${SPRINT_FOLDER}/API:/var/www:cached
+      - ./${SPRINT_FOLDER}/API:/var/www:cached # Correct bind mount
       - phpmyadmindata:/var/www/phpmyadmin
     ports:
       - 8091:80
@@ -53,8 +52,8 @@ services:
     container_name: cron
     restart: always
     command: crond -f -l 8
-    volumes_from:
-      - laravel-api
+    volumes: # <--- CHANGE THIS LINE (from volumes_from)
+      - ./${SPRINT_FOLDER}/API:/var/www:cached # <--- ADD THIS EXPLICIT BIND MOUNT
     environment:
       - "PHP_OPCACHE_VALIDATE_TIMESTAMPS=1"
       - "DB_PORT=3306"
@@ -65,8 +64,8 @@ services:
   composer:
     image: composer:2.6.6
     command: install --no-dev --optimize-autoloader --ignore-platform-req=ext-ffi && chown -R www-data /var/www && chmod 777 /var/www
-    volumes_from:
-      - laravel-api
+    volumes: # <--- CHANGE THIS LINE (from volumes_from)
+      - ./${SPRINT_FOLDER}/API:/var/www:cached # <--- ADD THIS EXPLICIT BIND MOUNT
     working_dir: /var/www
 
   # The Database
@@ -101,4 +100,4 @@ services:
 volumes:
   db:
   phpmyadmindata:
-  # laravel-api:
+  # laravel-api: # This should remain commented out
