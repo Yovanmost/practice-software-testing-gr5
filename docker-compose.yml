@@ -14,7 +14,7 @@ services:
       - "DB_HOST=mariadb"
       - "host=localhost"
       - DISABLE_LOGGING=${DISABLE_LOGGING}
-    user: root
+    # user: root
 
   angular-ui:
     build:
@@ -35,7 +35,8 @@ services:
       dockerfile: web.docker
     working_dir: /var/www
     volumes:
-      - laravel-api:/var/www
+      # - laravel-api:/var/www
+      - ./${SPRINT_FOLDER}/API:/var/www:cached
       - phpmyadmindata:/var/www/phpmyadmin
     ports:
       - 8091:80
@@ -100,4 +101,4 @@ services:
 volumes:
   db:
   phpmyadmindata:
-  laravel-api:
+  # laravel-api:
