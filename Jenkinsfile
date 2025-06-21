@@ -198,6 +198,16 @@ pipeline {
         echo "Waiting for services to become ready (60 seconds)..."
         sh 'sleep 60s'
 
+        dir("${WORKSPACE}") {
+            echo "Listing contents of /var/www in laravel-api container..."
+            sh 'docker-compose exec -T laravel-api ls -la /var/www'
+            echo "Checking owner/permissions of /var/www in laravel-api container..."
+            sh 'docker-compose exec -T laravel-api stat /var/www'
+            echo "Attempting to create a test file in /var/www inside laravel-api container..."
+            sh 'docker-compose exec -T laravel-api touch /var/www/test_file.txt'
+            sh 'docker-compose exec -T laravel-api ls -la /var/www'
+        }
+
         echo "Listing contents of /var/www in laravel-api container..."
         dir("${env.COMPOSE_ROOT_DIR}") {
             // Add this line to debug
