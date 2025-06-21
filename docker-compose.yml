@@ -14,6 +14,7 @@ services:
       - "DB_HOST=mariadb"
       - "host=localhost"
       - DISABLE_LOGGING=${DISABLE_LOGGING}
+    user: root
 
   angular-ui:
     build:
