@@ -121,8 +121,8 @@ pipeline {
     // NEW: Absolute path for the API source code for Docker Compose volume mount
     API_SOURCE_PATH = "${WORKSPACE}/${API_DIR}" // <--- ADD THIS LINE
     SPRINT_FOLDER = "sprint5-with-bugs"
-    HOST_UID = sh(script: 'id -u', returnStdout: true).trim()
-    HOST_GID = sh(script: 'id -g', returnStdout: true).trim()
+    HOST_UID = "1000"
+    HOST_GID = "1000"
   }
 
   options {
