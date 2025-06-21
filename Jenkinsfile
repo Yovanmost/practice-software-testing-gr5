@@ -70,16 +70,11 @@ pipeline {
             }
         }
 
-        environment {
-          // Define paths relative to the Jenkins workspace root
-          API_DIR = "sprint5-with-bugs/API"
-          UI_DIR = "sprint5/UI"
-        }
 
         stage('Run Frontend Unit Tests (Karma/Jasmine)') {
             steps {
                 echo "Executing Angular unit tests using Karma and ChromeHeadless..."
-                dir("${env.UI_DIR}") {
+                dir("${sprint5/UI}") {
                     // 'xvfb-run' provides a virtual display for ChromeHeadless, crucial on headless servers.
                     // '--watch=false' ensures tests run once and exit.
                     // '--browsers=ChromeHeadless' explicitly tells Karma to use headless Chrome.
