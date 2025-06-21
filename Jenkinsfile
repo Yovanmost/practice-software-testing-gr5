@@ -76,16 +76,7 @@ pipeline {
 
                 dir("${env.UI_DIR}") {
                     withEnv(["CHROME_BIN=/usr/bin/chromium"]) {
-                        sh '''
-                            # Only needed if not baked into the image; remove if already installed
-                            # apt-get update
-                            # apt-get install -y libnss3 libxss1 libasound2 libappindicator3-1 \
-                            #   libatk-bridge2.0-0 libgtk-3-0 libxshmfence1 fonts-liberation xvfb
-
-                            xvfb-run --auto-servernum -- \
-                            npm run test -- --watch=false --browsers=ChromeHeadless \
-                            --no-sandbox --disable-setuid-sandbox
-                        '''
+                        sh 'xvfb-run --auto-servernum -- npm run test -- --watch=false --browsers=ChromeHeadlessCI'
                     }
                 }
             }
