@@ -70,18 +70,50 @@ pipeline {
             }
         }
 
-
         stage('Run Frontend Unit Tests (Karma/Jasmine)') {
             steps {
                 echo "Executing Angular unit tests using Karma and ChromeHeadless..."
+
                 dir("${env.UI_DIR}") {
-                    // 'xvfb-run' provides a virtual display for ChromeHeadless, crucial on headless servers.
-                    // '--watch=false' ensures tests run once and exit.
-                    // '--browsers=ChromeHeadless' explicitly tells Karma to use headless Chrome.
-                    sh 'xvfb-run --auto-servernum -- npm run test -- --watch=false --browsers=ChromeHeadless'
+                    // Set CHROME_BIN to chromium path if using chromium
+                    withEnv(["CHROME_BIN=/usr/bin/chromium"]) {
+                        sh '''
+                            # Install required system libraries like in GitHub Actions
+                            sudo apt-get update
+                            sudo apt-get install -y libnss3 libxss1 libasound2 libappindicator3-1 \
+                                libatk-bridge2.0-0 libgtk-3-0 libxshmfence1 fonts-liberation xvfb
+
+                            # Run unit tests using ChromeHeadless and virtual display
+                            xvfb-run --auto-servernum -- npm run test -- --watch=false --browsers=ChromeHeadless
+                        '''
+                    }
                 }
             }
         }
+
+        stage('Build Angular App') {
+            steps {
+                echo "Building Angular app for production..."
+
+                dir("${env.UI_DIR}") {
+                    sh 'npm run build -- --configuration production'
+                }
+            }
+        }
+
+
+
+        // stage('Run Frontend Unit Tests (Karma/Jasmine)') {
+        //     steps {
+        //         echo "Executing Angular unit tests using Karma and ChromeHeadless..."
+        //         dir("${env.UI_DIR}") {
+        //             // 'xvfb-run' provides a virtual display for ChromeHeadless, crucial on headless servers.
+        //             // '--watch=false' ensures tests run once and exit.
+        //             // '--browsers=ChromeHeadless' explicitly tells Karma to use headless Chrome.
+        //             sh 'xvfb-run --auto-servernum -- npm run test -- --watch=false --browsers=ChromeHeadless'
+        //         }
+        //     }
+        // }
 
         // Optional: If you have Playwright E2E tests that can hit an *external* URL (e.g., a deployed staging environment)
         // and do not need a locally running docker-compose setup, you could uncomment and adjust this.
