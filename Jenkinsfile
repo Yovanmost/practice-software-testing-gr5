@@ -240,6 +240,35 @@ pipeline {
     //     }
     //   }
     // }
+
+    stage('Run Frontend Unit Tests') {
+      agent {
+        docker {
+          image 'node:18' // Node.js v18 is compatible with Angular 15
+        }
+      }
+      environment {
+        UI_DIR = 'sprint5/UI'
+      }
+      steps {
+        dir("${UI_DIR}") {
+          echo '📦 Installing Node.js dependencies...'
+          sh 'npm ci --legacy-peer-deps'
+
+          echo '🧱 Installing Chrome dependencies...'
+          sh '''
+            apt-get update
+            apt-get install -y libnss3 libxss1 libasound2 \
+              fonts-liberation libappindicator3-1 libatk-bridge2.0-0 \
+              libgtk-3-0 libxshmfence1 xvfb
+          '''
+
+          echo '🧪 Running Angular unit tests (Karma + ChromeHeadless)...'
+          sh 'xvfb-run --auto-servernum -- npm run test -- --watch=false --browsers=ChromeHeadless'
+        }
+      }
+    }
+
   }
 
   post {
