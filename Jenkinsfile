@@ -184,6 +184,10 @@ pipeline {
           sh 'cat "${DOCKER_COMPOSE_FILE}"'
         }
 
+        echo "Verifying contents of host API directory: ${API_SOURCE_PATH}"
+        sh "ls -la ${API_SOURCE_PATH}"
+        sh "test -f ${API_SOURCE_PATH}/artisan && echo 'artisan found on host!' || echo 'artisan NOT found on host!'"
+
         echo "Starting Docker containers for E2E tests using docker-compose..."
         dir("${env.COMPOSE_ROOT_DIR}") {
           sh 'export DISABLE_LOGGING=true'
