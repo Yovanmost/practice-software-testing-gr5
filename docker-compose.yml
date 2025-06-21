@@ -14,7 +14,7 @@ services:
       - "DB_HOST=mariadb"
       - "host=localhost"
       - DISABLE_LOGGING=${DISABLE_LOGGING}
-    # user: root # This should remain commented out
+    user: "${HOST_UID}:${HOST_GID}"  # ✅ Ensure write access from container
 
   angular-ui:
     build:
@@ -27,6 +27,7 @@ services:
       - 4200:4200
     command: >
       bash -c "npm install --force && ng serve --host 0.0.0.0 --port 4200"
+    user: "${HOST_UID}:${HOST_GID}"  # ✅ Optional: match permissions
 
   # The Web Server
   web:
@@ -35,7 +36,7 @@ services:
       dockerfile: web.docker
     working_dir: /var/www
     volumes:
-      - ./${SPRINT_FOLDER}/API:/var/www:cached # Correct bind mount
+      - ./${SPRINT_FOLDER}/API:/var/www:cached
       - phpmyadmindata:/var/www/phpmyadmin
     ports:
       - 8091:80
@@ -43,6 +44,7 @@ services:
     depends_on:
       - phpmyadmin
       - laravel-api
+    user: "${HOST_UID}:${HOST_GID}"  # ✅ Optional: safe default
 
   cron:
     build:
@@ -52,21 +54,23 @@ services:
     container_name: cron
     restart: always
     command: crond -f -l 8
-    volumes: # <--- CHANGE THIS LINE (from volumes_from)
-      - ./${SPRINT_FOLDER}/API:/var/www:cached # <--- ADD THIS EXPLICIT BIND MOUNT
+    volumes:
+      - ./${SPRINT_FOLDER}/API:/var/www:cached
     environment:
       - "PHP_OPCACHE_VALIDATE_TIMESTAMPS=1"
       - "DB_PORT=3306"
       - "DB_HOST=mariadb"
       - "host=localhost"
       - DISABLE_LOGGING=${DISABLE_LOGGING}
+    user: "${HOST_UID}:${HOST_GID}"  # ✅ Required for writing to /var/www
 
   composer:
     image: composer:2.6.6
     command: install --no-dev --optimize-autoloader --ignore-platform-req=ext-ffi && chown -R www-data /var/www && chmod 777 /var/www
-    volumes: # <--- CHANGE THIS LINE (from volumes_from)
-      - ./${SPRINT_FOLDER}/API:/var/www:cached # <--- ADD THIS EXPLICIT BIND MOUNT
+    volumes:
+      - ./${SPRINT_FOLDER}/API:/var/www:cached
     working_dir: /var/www
+    user: "${HOST_UID}:${HOST_GID}"  # ✅ Required to install vendor/ correctly
 
   # The Database
   mariadb:
@@ -94,10 +98,9 @@ services:
   mailcatcher:
     image: dockage/mailcatcher:0.9.0
     ports:
-      - 1025:1025 # smtp server
-      - 1080:1080 # web ui
+      - 1025:1025
+      - 1080:1080
 
 volumes:
   db:
   phpmyadmindata:
-  # laravel-api: # This should remain commented out
