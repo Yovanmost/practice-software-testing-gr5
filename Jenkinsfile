@@ -126,6 +126,13 @@ pipeline {
             }
         }
 
+        stage('Check Laravel Code in Jenkins Workspace') {
+            steps {
+                sh 'ls -la sprint5-with-bugs/API'
+                sh 'ls -la sprint5-with-bugs/API/artisan || echo "❌ artisan not found in API dir"'
+            }
+        }
+
 
 
         stage('Seed Test Database') {
