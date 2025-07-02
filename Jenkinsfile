@@ -99,7 +99,7 @@ pipeline {
             steps {
                 echo "Running migrations and seeding database..."
                 withEnv(["DOCKER_HOST=tcp://docker-tcp-relay:2375"]) {
-                    sh 'docker-compose exec -T laravel-api php artisan migrate:fresh --seed' // ✅ FIXED: no TTY
+                    sh 'docker-compose exec -T laravel-api php /var/www/artisan migrate:fresh --seed' // ✅ FIX: Use full path to artisan
                 }
             }
         }
