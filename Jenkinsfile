@@ -135,42 +135,35 @@ pipeline {
     }
 
     options {
-        skipDefaultCheckout true
-        timestamps()
+        timestamps() // ⛔️ Removed skipDefaultCheckout to allow Jenkins to checkout inside agent
     }
 
     stages {
-
-        stage('Checkout Code') {
+        stage('Verify Workspace & Source') {
             steps {
-                script {
-                    checkout scm
-                }
-                echo "📦 Code checked out to: ${WORKSPACE}"
-                sh "ls -la ${env.API_DIR}"
-                sh "ls -la ${env.UI_DIR}"
+                echo "Running on agent at workspace: ${WORKSPACE}"
+                sh 'ls -la'
+                sh 'git --version'
             }
         }
 
         stage('Install Backend Dependencies') {
             steps {
-                echo "🔧 Installing Composer packages..."
+                echo "Installing PHP dependencies using Composer..."
                 dir("${env.API_DIR}") {
-                    sh '''
-                        composer install --prefer-dist --optimize-autoloader
-                        composer dump-autoload -o
-                        php artisan config:clear
-                        php artisan cache:clear
-                        php artisan view:clear
-                        php artisan route:clear
-                    '''
+                    sh 'composer install --prefer-dist --optimize-autoloader'
+                    sh 'composer dump-autoload -o'
+                    sh 'php artisan config:clear'
+                    sh 'php artisan cache:clear'
+                    sh 'php artisan view:clear'
+                    sh 'php artisan route:clear'
                 }
             }
         }
 
         stage('Install Frontend Dependencies') {
             steps {
-                echo "🔧 Installing Angular packages..."
+                echo "Installing Angular dependencies..."
                 dir("${env.UI_DIR}") {
                     sh 'npm ci --legacy-peer-deps'
                 }
@@ -179,7 +172,7 @@ pipeline {
 
         stage('Run Backend Unit Tests') {
             steps {
-                echo "✅ Running Laravel tests..."
+                echo "Running PHP tests..."
                 dir("${env.API_DIR}") {
                     sh 'APP_ENV=testing ./vendor/bin/phpunit'
                 }
@@ -188,7 +181,7 @@ pipeline {
 
         stage('Run Frontend Unit Tests') {
             steps {
-                echo "✅ Running Angular Karma tests..."
+                echo "Running Angular tests in headless mode..."
                 dir("${env.UI_DIR}") {
                     withEnv(["CHROME_BIN=/usr/bin/chromium"]) {
                         sh 'xvfb-run --auto-servernum -- npm run test -- --watch=false --browsers=ChromeHeadlessCI'
@@ -197,9 +190,8 @@ pipeline {
             }
         }
 
-        // stage('Deploy Docker Containers') {
+        // stage('Deploy App (Docker Compose)') {
         //     steps {
-        //         echo "🚀 Deploying application with Docker Compose..."
         //         withEnv(["SPRINT_FOLDER=${env.SPRINT_FOLDER}"]) {
         //             sh 'docker-compose down || true'
         //             sh 'docker-compose up -d --build'
@@ -209,7 +201,6 @@ pipeline {
 
         // stage('Seed Test Database') {
         //     steps {
-        //         echo "🌱 Seeding Laravel database..."
         //         withEnv(["SPRINT_FOLDER=${env.SPRINT_FOLDER}"]) {
         //             sh 'docker-compose run -T laravel-api php artisan migrate:fresh --seed'
         //         }
@@ -218,8 +209,8 @@ pipeline {
 
         // stage('Health Check') {
         //     steps {
-        //         echo "🩺 Checking API health..."
-        //         sh 'curl --fail http://localhost:8091/api/health || echo "⚠️ API not responding"'
+        //         echo "Checking API health endpoint..."
+        //         sh 'curl --fail http://localhost:8091/api/health || echo "API not responding yet"'
         //     }
         // }
     }
@@ -230,10 +221,11 @@ pipeline {
             deleteDir()
         }
         success {
-            echo '✅ CI pipeline completed successfully!'
+            echo "✅ CI pipeline completed successfully!"
         }
         failure {
-            echo '❌ CI pipeline failed!'
+            echo "❌ CI pipeline failed!"
         }
     }
 }
+
