@@ -88,8 +88,8 @@ pipeline {
 
                 // Set DOCKER_HOST to point to the relay container (e.g., tcp://docker-tcp-relay:2375)
                 withEnv(["DOCKER_HOST=tcp://docker-tcp-relay:2375"]) {
-                    sh 'docker compose down || true' // Stop previous if running
-                    sh 'docker compose up -d --build' // Rebuild and run in background
+                    sh 'docker-compose down || true'
+                    sh 'docker-compose up -d --build'
                 }
             }
         }
