@@ -98,6 +98,36 @@ pipeline {
             }
         }
 
+        stage('Debug .env Contents') {
+            steps {
+                echo "Checking contents of .env file..."
+                sh 'cat .env || echo ".env file not found!"'
+            }
+        }
+
+        stage('Debug docker-compose config') {
+            steps {
+                echo "Resolving docker-compose configuration..."
+                sh 'docker-compose config'
+            }
+        }
+
+        stage('Debug Jenkins Workspace') {
+            steps {
+                echo "Jenkins is in workspace: ${WORKSPACE}"
+                sh 'ls -la'
+            }
+        }
+
+        stage('Debug Docker Context') {
+            steps {
+                sh 'docker version'
+                sh 'docker context ls'
+            }
+        }
+
+
+
         stage('Seed Test Database') {
             steps {
                 echo "Running migrations and seeding database..."
