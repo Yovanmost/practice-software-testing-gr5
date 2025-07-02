@@ -12,6 +12,7 @@ pipeline {
 
     environment {
         // Define paths relative to the Jenkins workspace root
+        SPRINT_FOLDER = "sprint5-with-bugs"
         API_DIR = "sprint5-with-bugs/API"
         UI_DIR = "sprint5-with-bugs/UI"
     }
@@ -94,12 +95,20 @@ pipeline {
             }
         }
 
+        stage('Debug Artisan Path') {
+            steps {
+                withEnv(["DOCKER_HOST=tcp://docker-tcp-relay:2375"]) {
+                    sh 'docker-compose exec -T laravel-api ls -la /var/www'
+                }
+            }
+        }
+
         // ✅ NEW: Seed the test database
         stage('Seed Test Database') {
             steps {
                 echo "Running migrations and seeding database..."
                 withEnv(["DOCKER_HOST=tcp://docker-tcp-relay:2375"]) {
-                    sh 'docker-compose exec -T laravel-api php /var/www/artisan migrate:fresh --seed' // ✅ FIX: Use full path to artisan
+                    sh 'docker-compose exec -T laravel-api php artisan migrate:fresh --seed' // ✅ FIXED: no TTY
                 }
             }
         }
