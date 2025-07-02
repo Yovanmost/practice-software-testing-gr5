@@ -94,6 +94,24 @@ pipeline {
             }
         }
 
+        // ✅ NEW: Seed the test database
+        stage('Seed Test Database') {
+            steps {
+                echo "Running migrations and seeding database..."
+                withEnv(["DOCKER_HOST=tcp://docker-tcp-relay:2375"]) {
+                    sh 'docker-compose exec laravel-api php artisan migrate:fresh --seed'
+                }
+            }
+        }
+
+        // ✅ OPTIONAL: Quick check that backend is responding
+        stage('Health Check') {
+            steps {
+                echo "Checking if API is reachable..."
+                // Adjust the port if needed
+                sh 'curl --fail http://localhost:8091/api/health || echo "API not responding (yet)"'
+            }
+        }
 
         // Build the frontend app
         // stage('Build Angular App') {
