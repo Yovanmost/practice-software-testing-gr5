@@ -82,16 +82,29 @@ pipeline {
             }
         }
 
-
-        stage('Build Angular App') {
+        stage('Deploy App (Docker Compose)') {
             steps {
-                echo "Building Angular app for production..."
+                echo "Deploying application using Docker Compose on Docker host..."
 
-                dir("${env.UI_DIR}") {
-                    sh 'npm run build -- --configuration production'
+                // Set DOCKER_HOST to point to the relay container (e.g., tcp://docker-tcp-relay:2375)
+                withEnv(["DOCKER_HOST=tcp://docker-tcp-relay:2375"]) {
+                    sh 'docker compose down || true' // Stop previous if running
+                    sh 'docker compose up -d --build' // Rebuild and run in background
                 }
             }
         }
+
+
+        // Build the frontend app
+        // stage('Build Angular App') {
+        //     steps {
+        //         echo "Building Angular app for production..."
+
+        //         dir("${env.UI_DIR}") {
+        //             sh 'npm run build -- --configuration production'
+        //         }
+        //     }
+        // }
 
 
 
