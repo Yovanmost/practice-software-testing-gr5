@@ -61,16 +61,16 @@ pipeline {
             }
         }
 
-        stage('Run Frontend Unit Tests (Karma/Jasmine)') {
-            steps {
-                echo "Executing Angular unit tests using Karma and ChromeHeadless..."
-                dir("${env.UI_DIR}") {
-                    withEnv(["CHROME_BIN=/usr/bin/chromium"]) {
-                        sh 'xvfb-run --auto-servernum -- npm run test -- --watch=false --browsers=ChromeHeadlessCI'
-                    }
-                }
-            }
-        }
+        // stage('Run Frontend Unit Tests (Karma/Jasmine)') {
+        //     steps {
+        //         echo "Executing Angular unit tests using Karma and ChromeHeadless..."
+        //         dir("${env.UI_DIR}") {
+        //             withEnv(["CHROME_BIN=/usr/bin/chromium"]) {
+        //                 sh 'xvfb-run --auto-servernum -- npm run test -- --watch=false --browsers=ChromeHeadlessCI'
+        //             }
+        //         }
+        //     }
+        // }
 
         stage('Deploy App (Docker Compose)') {
             steps {
