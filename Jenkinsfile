@@ -143,7 +143,7 @@ pipeline {
     stages {
         stage('Docker Version') {
             steps {
-                bat 'docker version'
+                sh 'docker version'
             }
         }
 
