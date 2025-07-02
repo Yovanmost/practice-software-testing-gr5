@@ -2,8 +2,6 @@
 // This pipeline runs tests directly on the Jenkins agent, without using Docker Compose for the tests themselves.
 
 pipeline {
-    // Define the Jenkins agent where this pipeline will run.
-    // Ensure 'my-jenkins-agent' is a Docker agent built from your provided Dockerfile.
     agent {
         node {
             label 'my-jenkins-agent'
@@ -11,22 +9,21 @@ pipeline {
     }
 
     environment {
-        // Define paths relative to the Jenkins workspace root
         SPRINT_FOLDER = "sprint5-with-bugs"
         API_DIR = "sprint5-with-bugs/API"
         UI_DIR = "sprint5-with-bugs/UI"
     }
 
     options {
-        skipDefaultCheckout true // Assume Jenkins handles SCM checkout externally
-        timestamps() // Add timestamps to log output for readability
+        skipDefaultCheckout true
+        timestamps()
     }
 
     stages {
         stage('Checkout Code') {
             steps {
                 script {
-                    checkout scm // Ensures the workspace is populated with your code
+                    checkout scm
                 }
                 echo "Code checked out to: ${WORKSPACE}"
                 echo "Listing contents of API directory: ${env.API_DIR}"
@@ -40,10 +37,8 @@ pipeline {
             steps {
                 echo "Installing PHP dependencies using Composer on the agent..."
                 dir("${env.API_DIR}") {
-                    // Using --no-dev is usually good for CI, unless you need dev dependencies for tests
                     sh 'composer install --prefer-dist --optimize-autoloader'
                     sh 'composer dump-autoload -o'
-                    // Clear Laravel caches; good practice on a fresh environment
                     sh 'php artisan config:clear'
                     sh 'php artisan cache:clear'
                     sh 'php artisan view:clear'
@@ -52,7 +47,6 @@ pipeline {
 
                 echo "Installing Node.js dependencies for UI (Angular)..."
                 dir("${env.UI_DIR}") {
-                    // 'npm ci' is preferred for CI as it's faster and uses package-lock.json
                     sh 'npm ci --legacy-peer-deps'
                 }
             }
@@ -61,12 +55,8 @@ pipeline {
         stage('Run Backend Unit Tests') {
             steps {
                 echo "Running PHP unit/feature tests directly on the agent."
-                echo "Assuming phpunit.xml is configured to use in-memory SQLite (DB_CONNECTION=sqlite, DB_DATABASE=:memory:)."
                 dir("${env.API_DIR}") {
-                    // Set APP_ENV to testing to ensure Laravel loads test-specific configurations
                     sh 'APP_ENV=testing ./vendor/bin/phpunit'
-                    // If you use PestPHP:
-                    // sh 'APP_ENV=testing ./vendor/bin/pest'
                 }
             }
         }
@@ -74,7 +64,6 @@ pipeline {
         stage('Run Frontend Unit Tests (Karma/Jasmine)') {
             steps {
                 echo "Executing Angular unit tests using Karma and ChromeHeadless..."
-
                 dir("${env.UI_DIR}") {
                     withEnv(["CHROME_BIN=/usr/bin/chromium"]) {
                         sh 'xvfb-run --auto-servernum -- npm run test -- --watch=false --browsers=ChromeHeadlessCI'
@@ -86,9 +75,11 @@ pipeline {
         stage('Deploy App (Docker Compose)') {
             steps {
                 echo "Deploying application using Docker Compose on Docker host..."
-
-                // Set DOCKER_HOST to point to the relay container (e.g., tcp://docker-tcp-relay:2375)
-                withEnv(["DOCKER_HOST=tcp://docker-tcp-relay:2375"]) {
+                // ✅ FIX: Inject SPRINT_FOLDER
+                withEnv([
+                    "DOCKER_HOST=tcp://docker-tcp-relay:2375",
+                    "SPRINT_FOLDER=${env.SPRINT_FOLDER}"
+                ]) {
                     sh 'docker-compose down || true'
                     sh 'docker-compose up -d --build'
                 }
@@ -97,80 +88,44 @@ pipeline {
 
         stage('Debug Artisan Path') {
             steps {
-                withEnv(["DOCKER_HOST=tcp://docker-tcp-relay:2375"]) {
+                // ✅ FIX: Inject SPRINT_FOLDER
+                withEnv([
+                    "DOCKER_HOST=tcp://docker-tcp-relay:2375",
+                    "SPRINT_FOLDER=${env.SPRINT_FOLDER}"
+                ]) {
                     sh 'docker-compose exec -T laravel-api ls -la /var/www'
                 }
             }
         }
 
-        // ✅ NEW: Seed the test database
         stage('Seed Test Database') {
             steps {
                 echo "Running migrations and seeding database..."
-                withEnv(["DOCKER_HOST=tcp://docker-tcp-relay:2375"]) {
-                    sh 'docker-compose exec -T laravel-api php artisan migrate:fresh --seed' // ✅ FIXED: no TTY
+                // ✅ FIX: Inject SPRINT_FOLDER
+                withEnv([
+                    "DOCKER_HOST=tcp://docker-tcp-relay:2375",
+                    "SPRINT_FOLDER=${env.SPRINT_FOLDER}"
+                ]) {
+                    sh 'docker-compose exec -T laravel-api php artisan migrate:fresh --seed'
                 }
             }
         }
 
-        // ✅ OPTIONAL: Quick check that backend is responding
         stage('Health Check') {
             steps {
                 echo "Checking if API is reachable..."
-                // Adjust the port if needed
                 sh 'curl --fail http://localhost:8091/api/health || echo "API not responding (yet)"'
             }
         }
-
-        // Build the frontend app
-        // stage('Build Angular App') {
-        //     steps {
-        //         echo "Building Angular app for production..."
-
-        //         dir("${env.UI_DIR}") {
-        //             sh 'npm run build -- --configuration production'
-        //         }
-        //     }
-        // }
-
-
-
-        // stage('Run Frontend Unit Tests (Karma/Jasmine)') {
-        //     steps {
-        //         echo "Executing Angular unit tests using Karma and ChromeHeadless..."
-        //         dir("${env.UI_DIR}") {
-        //             // 'xvfb-run' provides a virtual display for ChromeHeadless, crucial on headless servers.
-        //             // '--watch=false' ensures tests run once and exit.
-        //             // '--browsers=ChromeHeadless' explicitly tells Karma to use headless Chrome.
-        //             sh 'xvfb-run --auto-servernum -- npm run test -- --watch=false --browsers=ChromeHeadless'
-        //         }
-        //     }
-        // }
-
-        // Optional: If you have Playwright E2E tests that can hit an *external* URL (e.g., a deployed staging environment)
-        // and do not need a locally running docker-compose setup, you could uncomment and adjust this.
-        // stage('Run Frontend E2E Tests (Playwright - External URL)') {
-        //   steps {
-        //     echo "Running Playwright E2E tests against an external environment."
-        //     echo "Ensure playwright.config.ts is configured with an appropriate baseURL."
-        //     dir("${env.UI_DIR}") {
-        //       sh 'npx playwright test'
-        //     }
-        //   }
-        // }
     }
 
     post {
         always {
             echo "Pipeline finished. Cleaning up workspace..."
-            // Clean the workspace to ensure a fresh start for the next build.
             deleteDir()
         }
         failure {
             echo '❌ CI pipeline completed with failures!'
-            // Optionally archive test reports if your test runners generate them (e.g., JUnit XML, HTML coverage)
-            // archiveArtifacts artifacts: "${env.API_DIR}/junit-report.xml", allowEmpty: true
-            // archiveArtifacts artifacts: "${env.UI_DIR}/coverage/**", allowEmpty: true
         }
         success {
             echo '✅ CI pipeline completed successfully!'
