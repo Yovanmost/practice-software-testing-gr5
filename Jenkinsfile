@@ -140,14 +140,13 @@ pipeline {
         timestamps()
     }
 
-    stage('Docker Version') {
-        steps {
-            bat 'docker version'
-        }
-    }
-
-
     stages {
+        stage('Docker Version') {
+            steps {
+                bat 'docker version'
+            }
+        }
+
         stage('Verify Workspace & Git') {
             steps {
                 echo "Agent workspace: ${WORKSPACE}"
