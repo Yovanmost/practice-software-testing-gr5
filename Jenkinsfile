@@ -132,6 +132,7 @@ pipeline {
         SPRINT_FOLDER = "sprint5-with-bugs"
         API_DIR = "sprint5-with-bugs/API"
         UI_DIR = "sprint5-with-bugs/UI"
+        CHROME_BIN = "/usr/bin/chromium"
     }
 
     options {
@@ -139,90 +140,113 @@ pipeline {
     }
 
     stages {
-        stage('Verify Workspace & Source') {
+        stage('Verify Workspace & Git') {
             steps {
-                echo "Running on agent at workspace: ${WORKSPACE}"
+                echo "Agent workspace: ${WORKSPACE}"
                 sh 'ls -la'
                 sh 'git --version'
             }
         }
 
-        stage('Install Backend Dependencies') {
-            steps {
-                script {
-                    def start = System.currentTimeMillis()
-                    echo "Installing PHP dependencies using Composer..."
-                    dir("${env.API_DIR}") {
-                        sh 'composer install --prefer-dist --optimize-autoloader'
-                        sh 'composer dump-autoload -o'
-                        sh 'php artisan config:clear'
-                        sh 'php artisan cache:clear'
-                        sh 'php artisan view:clear'
-                        sh 'php artisan route:clear'
-                    }
-                    def end = System.currentTimeMillis()
-                    echo "⏱️ Backend dependencies installed in ${(end - start) / 1000} seconds"
-                }
-            }
-        }
-
-        stage('Install Frontend Dependencies') {
-            steps {
-                script {
-                    def start = System.currentTimeMillis()
-                    echo "Installing Angular dependencies..."
-                    dir("${env.UI_DIR}") {
-                        sh 'npm ci --legacy-peer-deps'
-                    }
-                    def end = System.currentTimeMillis()
-                    echo "⏱️ Frontend dependencies installed in ${(end - start) / 1000} seconds"
-                }
-            }
-        }
-
-        stage('Run Backend Unit Tests') {
-            steps {
-                script {
-                    def start = System.currentTimeMillis()
-                    echo "Running PHP tests..."
-                    dir("${env.API_DIR}") {
-                        sh 'APP_ENV=testing ./vendor/bin/phpunit'
-                    }
-                    def end = System.currentTimeMillis()
-                    echo "⏱️ Backend tests completed in ${(end - start) / 1000} seconds"
-                }
-            }
-        }
-
-        stage('Run Frontend Unit Tests') {
-            steps {
-                script {
-                    def start = System.currentTimeMillis()
-                    echo "Running Angular tests in headless mode..."
-                    dir("${env.UI_DIR}") {
-                        withEnv(["CHROME_BIN=/usr/bin/chromium"]) {
-                            sh 'xvfb-run --auto-servernum -- npm run test -- --watch=false --browsers=ChromeHeadlessCI'
+        stage('Install Dependencies') {
+            parallel {
+                stage('Backend (Composer)') {
+                    steps {
+                        dir("${env.API_DIR}") {
+                            script {
+                                if (!fileExists('vendor') || sh(script: "test composer.lock -nt vendor", returnStatus: true) == 0) {
+                                    echo "Installing Composer dependencies..."
+                                    sh '''
+                                        composer install --prefer-dist --no-interaction --optimize-autoloader
+                                        composer dump-autoload -o
+                                        php artisan config:clear
+                                        php artisan cache:clear
+                                        php artisan view:clear
+                                        php artisan route:clear
+                                    '''
+                                } else {
+                                    echo "✔️ Skipping Composer install (no changes)"
+                                }
+                            }
                         }
                     }
-                    def end = System.currentTimeMillis()
-                    echo "⏱️ Frontend tests completed in ${(end - start) / 1000} seconds"
+                }
+
+                stage('Frontend (npm)') {
+                    steps {
+                        dir("${env.UI_DIR}") {
+                            script {
+                                if (!fileExists('node_modules') || sh(script: "test package-lock.json -nt node_modules", returnStatus: true) == 0) {
+                                    echo "Installing npm dependencies..."
+                                    sh 'npm ci --legacy-peer-deps'
+                                } else {
+                                    echo "✔️ Skipping npm install (no changes)"
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
+
+        stage('Run Tests') {
+            parallel {
+                stage('Backend PHPUnit') {
+                    steps {
+                        dir("${env.API_DIR}") {
+                            echo "Running Laravel tests..."
+                            sh 'APP_ENV=testing ./vendor/bin/phpunit'
+                        }
+                    }
+                }
+
+                stage('Frontend Karma') {
+                    steps {
+                        dir("${env.UI_DIR}") {
+                            echo "Running Angular unit tests..."
+                            withEnv(["CHROME_BIN=${env.CHROME_BIN}"]) {
+                                sh 'xvfb-run --auto-servernum -- npm run test -- --watch=false --browsers=ChromeHeadlessCI --code-coverage=false'
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Optional deployment stage (uncomment if needed)
+        // stage('Deploy App') {
+        //     steps {
+        //         withEnv(["SPRINT_FOLDER=${env.SPRINT_FOLDER}"]) {
+        //             sh 'docker-compose down || true'
+        //             sh 'docker-compose up -d --build'
+        //         }
+        //     }
+        // }
+
+        // stage('Seed Database') {
+        //     steps {
+        //         withEnv(["SPRINT_FOLDER=${env.SPRINT_FOLDER}"]) {
+        //             sh 'docker-compose run -T laravel-api php artisan migrate:fresh --seed'
+        //         }
+        //     }
+        // }
+
+        // stage('Health Check') {
+        //     steps {
+        //         sh 'curl --fail http://localhost:8091/api/health || echo "API not responding (yet)"'
+        //     }
+        // }
     }
 
     post {
-        always {
-            echo "🧹 Cleaning up workspace..."
-            deleteDir()
-        }
         success {
             echo "✅ CI pipeline completed successfully!"
         }
         failure {
             echo "❌ CI pipeline failed!"
         }
+        cleanup {
+            echo "🧹 Cleanup: Removing unused build artifacts (but not full workspace)"
+        }
     }
 }
-
-
