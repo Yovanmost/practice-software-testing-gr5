@@ -157,12 +157,13 @@ pipeline {
                                 if (!fileExists('vendor') || sh(script: "test composer.lock -nt vendor", returnStatus: true) == 0) {
                                     echo "Installing Composer dependencies..."
                                     sh '''
+                                        set -e
                                         composer install --prefer-dist --no-interaction --optimize-autoloader
                                         composer dump-autoload -o
-                                        php artisan config:clear
-                                        php artisan cache:clear
-                                        php artisan view:clear
-                                        php artisan route:clear
+                                        php artisan config:clear || echo "config:clear failed"
+                                        php artisan cache:clear || echo "cache:clear failed"
+                                        php artisan view:clear || echo "view:clear failed"
+                                        php artisan route:clear || echo "route:clear failed"
                                     '''
                                 } else {
                                     echo "✔️ Skipping Composer install (no changes)"
