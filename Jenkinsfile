@@ -135,7 +135,7 @@ pipeline {
     }
 
     options {
-        timestamps() // ⛔️ Removed skipDefaultCheckout to allow Jenkins to checkout inside agent
+        timestamps()
     }
 
     stages {
@@ -149,70 +149,66 @@ pipeline {
 
         stage('Install Backend Dependencies') {
             steps {
-                echo "Installing PHP dependencies using Composer..."
-                dir("${env.API_DIR}") {
-                    sh 'composer install --prefer-dist --optimize-autoloader'
-                    sh 'composer dump-autoload -o'
-                    sh 'php artisan config:clear'
-                    sh 'php artisan cache:clear'
-                    sh 'php artisan view:clear'
-                    sh 'php artisan route:clear'
+                script {
+                    def start = System.currentTimeMillis()
+                    echo "Installing PHP dependencies using Composer..."
+                    dir("${env.API_DIR}") {
+                        sh 'composer install --prefer-dist --optimize-autoloader'
+                        sh 'composer dump-autoload -o'
+                        sh 'php artisan config:clear'
+                        sh 'php artisan cache:clear'
+                        sh 'php artisan view:clear'
+                        sh 'php artisan route:clear'
+                    }
+                    def end = System.currentTimeMillis()
+                    echo "⏱️ Backend dependencies installed in ${(end - start) / 1000} seconds"
                 }
             }
         }
 
         stage('Install Frontend Dependencies') {
             steps {
-                echo "Installing Angular dependencies..."
-                dir("${env.UI_DIR}") {
-                    sh 'npm ci --legacy-peer-deps'
+                script {
+                    def start = System.currentTimeMillis()
+                    echo "Installing Angular dependencies..."
+                    dir("${env.UI_DIR}") {
+                        sh 'npm ci --legacy-peer-deps'
+                    }
+                    def end = System.currentTimeMillis()
+                    echo "⏱️ Frontend dependencies installed in ${(end - start) / 1000} seconds"
                 }
             }
         }
 
         stage('Run Backend Unit Tests') {
             steps {
-                echo "Running PHP tests..."
-                dir("${env.API_DIR}") {
-                    sh 'APP_ENV=testing ./vendor/bin/phpunit'
+                script {
+                    def start = System.currentTimeMillis()
+                    echo "Running PHP tests..."
+                    dir("${env.API_DIR}") {
+                        sh 'APP_ENV=testing ./vendor/bin/phpunit'
+                    }
+                    def end = System.currentTimeMillis()
+                    echo "⏱️ Backend tests completed in ${(end - start) / 1000} seconds"
                 }
             }
         }
 
         stage('Run Frontend Unit Tests') {
             steps {
-                echo "Running Angular tests in headless mode..."
-                dir("${env.UI_DIR}") {
-                    withEnv(["CHROME_BIN=/usr/bin/chromium"]) {
-                        sh 'xvfb-run --auto-servernum -- npm run test -- --watch=false --browsers=ChromeHeadlessCI'
+                script {
+                    def start = System.currentTimeMillis()
+                    echo "Running Angular tests in headless mode..."
+                    dir("${env.UI_DIR}") {
+                        withEnv(["CHROME_BIN=/usr/bin/chromium"]) {
+                            sh 'xvfb-run --auto-servernum -- npm run test -- --watch=false --browsers=ChromeHeadlessCI'
+                        }
                     }
+                    def end = System.currentTimeMillis()
+                    echo "⏱️ Frontend tests completed in ${(end - start) / 1000} seconds"
                 }
             }
         }
-
-        // stage('Deploy App (Docker Compose)') {
-        //     steps {
-        //         withEnv(["SPRINT_FOLDER=${env.SPRINT_FOLDER}"]) {
-        //             sh 'docker-compose down || true'
-        //             sh 'docker-compose up -d --build'
-        //         }
-        //     }
-        // }
-
-        // stage('Seed Test Database') {
-        //     steps {
-        //         withEnv(["SPRINT_FOLDER=${env.SPRINT_FOLDER}"]) {
-        //             sh 'docker-compose run -T laravel-api php artisan migrate:fresh --seed'
-        //         }
-        //     }
-        // }
-
-        // stage('Health Check') {
-        //     steps {
-        //         echo "Checking API health endpoint..."
-        //         sh 'curl --fail http://localhost:8091/api/health || echo "API not responding yet"'
-        //     }
-        // }
     }
 
     post {
@@ -228,4 +224,5 @@ pipeline {
         }
     }
 }
+
 
