@@ -153,7 +153,9 @@ pipeline {
             steps {
                 dir("${env.API_DIR}") {
                     script {
-                        if (!fileExists('vendor') || sh(script: "test composer.lock -nt vendor", returnStatus: true) == 0) {
+                        // Check if PHPUnit is missing
+                        def needsInstall = !fileExists('vendor/bin/phpunit')
+                        if (needsInstall) {
                             echo "Installing Composer dependencies..."
                             sh '''
                                 set -e
@@ -165,12 +167,13 @@ pipeline {
                                 php artisan route:clear || echo "route:clear failed"
                             '''
                         } else {
-                            echo "✔️ Skipping Composer install (no changes)"
+                            echo "✔️ Skipping Composer install (PHPUnit already exists)"
                         }
                     }
                 }
             }
         }
+
 
         stage('Install Frontend Dependencies') {
             steps {
