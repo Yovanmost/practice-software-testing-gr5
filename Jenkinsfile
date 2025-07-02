@@ -133,11 +133,19 @@ pipeline {
         API_DIR = "sprint5-with-bugs/API"
         UI_DIR = "sprint5-with-bugs/UI"
         CHROME_BIN = "/usr/bin/chromium"
+        DOCKER_HOST = 'tcp://localhost:2375'
     }
 
     options {
         timestamps()
     }
+
+    stage('Docker Version') {
+        steps {
+            bat 'docker version'
+        }
+    }
+
 
     stages {
         stage('Verify Workspace & Git') {
