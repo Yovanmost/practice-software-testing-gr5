@@ -148,55 +148,59 @@ pipeline {
             }
         }
 
-        stage('Install Dependencies') {
-            parallel {
-                stage('Backend (Composer)') {
-                    steps {
-                        dir("${env.API_DIR}") {
-                            script {
-                                if (!fileExists('vendor') || sh(script: "test composer.lock -nt vendor", returnStatus: true) == 0) {
-                                    echo "Installing Composer dependencies..."
-                                    sh '''
-                                        set -e
-                                        composer install --prefer-dist --no-interaction --optimize-autoloader
-                                        composer dump-autoload -o
-                                        php artisan config:clear || echo "config:clear failed"
-                                        php artisan cache:clear || echo "cache:clear failed"
-                                        php artisan view:clear || echo "view:clear failed"
-                                        php artisan route:clear || echo "route:clear failed"
-                                    '''
-                                } else {
-                                    echo "✔️ Skipping Composer install (no changes)"
-                                }
-                            }
-                        }
-                    }
-                }
-
-                stage('Frontend (npm)') {
-                    steps {
-                        dir("${env.UI_DIR}") {
-                            script {
-                                if (!fileExists('node_modules') || sh(script: "test package-lock.json -nt node_modules", returnStatus: true) == 0) {
-                                    echo "Installing npm dependencies..."
-                                    sh 'npm ci --legacy-peer-deps'
-                                } else {
-                                    echo "✔️ Skipping npm install (no changes)"
-                                }
-                            }
+        // 🔧 Sequential install to avoid race condition
+        stage('Install Backend Dependencies') {
+            steps {
+                dir("${env.API_DIR}") {
+                    script {
+                        if (!fileExists('vendor') || sh(script: "test composer.lock -nt vendor", returnStatus: true) == 0) {
+                            echo "Installing Composer dependencies..."
+                            sh '''
+                                set -e
+                                composer install --prefer-dist --no-interaction --optimize-autoloader
+                                composer dump-autoload -o
+                                php artisan config:clear || echo "config:clear failed"
+                                php artisan cache:clear || echo "cache:clear failed"
+                                php artisan view:clear || echo "view:clear failed"
+                                php artisan route:clear || echo "route:clear failed"
+                            '''
+                        } else {
+                            echo "✔️ Skipping Composer install (no changes)"
                         }
                     }
                 }
             }
         }
 
+        stage('Install Frontend Dependencies') {
+            steps {
+                dir("${env.UI_DIR}") {
+                    script {
+                        if (!fileExists('node_modules') || sh(script: "test package-lock.json -nt node_modules", returnStatus: true) == 0) {
+                            echo "Installing npm dependencies..."
+                            sh 'npm ci --legacy-peer-deps'
+                        } else {
+                            echo "✔️ Skipping npm install (no changes)"
+                        }
+                    }
+                }
+            }
+        }
+
+        // ✅ Tests in parallel
         stage('Run Tests') {
             parallel {
                 stage('Backend PHPUnit') {
                     steps {
                         dir("${env.API_DIR}") {
                             echo "Running Laravel tests..."
-                            sh 'APP_ENV=testing ./vendor/bin/phpunit'
+                            sh '''
+                                if [ ! -f ./vendor/bin/phpunit ]; then
+                                    echo "❌ PHPUnit not found! Aborting..."
+                                    exit 1
+                                fi
+                                APP_ENV=testing ./vendor/bin/phpunit
+                            '''
                         }
                     }
                 }
@@ -214,29 +218,7 @@ pipeline {
             }
         }
 
-        // Optional deployment stage (uncomment if needed)
-        // stage('Deploy App') {
-        //     steps {
-        //         withEnv(["SPRINT_FOLDER=${env.SPRINT_FOLDER}"]) {
-        //             sh 'docker-compose down || true'
-        //             sh 'docker-compose up -d --build'
-        //         }
-        //     }
-        // }
-
-        // stage('Seed Database') {
-        //     steps {
-        //         withEnv(["SPRINT_FOLDER=${env.SPRINT_FOLDER}"]) {
-        //             sh 'docker-compose run -T laravel-api php artisan migrate:fresh --seed'
-        //         }
-        //     }
-        // }
-
-        // stage('Health Check') {
-        //     steps {
-        //         sh 'curl --fail http://localhost:8091/api/health || echo "API not responding (yet)"'
-        //     }
-        // }
+        // Optional stages for deploy/db/healthcheck can be added here
     }
 
     post {
