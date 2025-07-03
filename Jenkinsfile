@@ -133,7 +133,7 @@ pipeline {
         API_DIR = "sprint5-with-bugs/API"
         UI_DIR = "sprint5-with-bugs/UI"
         CHROME_BIN = "/usr/bin/chromium"
-        DOCKER_HOST = 'tcp://host.docker.internal:2375'
+        // DOCKER_HOST = 'tcp://host.docker.internal:2375'
     }
 
     options {
