@@ -228,41 +228,41 @@ pipeline {
             }
         }
 
-        // Optional stages for deploy/db/healthcheck can be added here
-        stage('Deploy to Test') {
-            steps {
-                sh '''
-                    echo "🧪 Deploying test stack on port 8081..."
-                    docker-compose -f docker-compose.yml -f _docker/override-test.yml down || true
-                    docker-compose -f docker-compose.yml -f _docker/override-test.yml up -d --build
-                '''
-            }
-        }
+        // // Optional stages for deploy/db/healthcheck can be added here
+        // stage('Deploy to Test') {
+        //     steps {
+        //         sh '''
+        //             echo "🧪 Deploying test stack on port 8081..."
+        //             docker-compose -f docker-compose.yml -f _docker/override-test.yml down || true
+        //             docker-compose -f docker-compose.yml -f _docker/override-test.yml up -d --build
+        //         '''
+        //     }
+        // }
 
-        stage('Manual Approval for Production') {
-            steps {
-                input message: '✅ Review the test deployment and approve to deploy to production?'
-            }
-        }
+        // stage('Manual Approval for Production') {
+        //     steps {
+        //         input message: '✅ Review the test deployment and approve to deploy to production?'
+        //     }
+        // }
 
-        stage('Deploy to Production') {
-            steps {
-                sh '''
-                    echo "🚀 Deploying production stack on port 80..."
-                    docker-compose down || true
-                    docker-compose up -d --build
-                '''
-            }
-        }
+        // stage('Deploy to Production') {
+        //     steps {
+        //         sh '''
+        //             echo "🚀 Deploying production stack on port 80..."
+        //             docker-compose down || true
+        //             docker-compose up -d --build
+        //         '''
+        //     }
+        // }
 
-        stage('Optional: DB Migration & Seeding') {
-            when {
-                expression { return params.RUN_DB_SEED ?: false }
-            }
-            steps {
-                sh 'docker-compose exec -T laravel-api php artisan migrate:fresh --seed || true'
-            }
-        }
+        // stage('Optional: DB Migration & Seeding') {
+        //     when {
+        //         expression { return params.RUN_DB_SEED ?: false }
+        //     }
+        //     steps {
+        //         sh 'docker-compose exec -T laravel-api php artisan migrate:fresh --seed || true'
+        //     }
+        // }
     }
 
     post {
