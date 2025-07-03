@@ -141,11 +141,11 @@ pipeline {
     }
 
     stages {
-        stage('Docker Version') {
-            steps {
-                sh 'docker version'
-            }
-        }
+        // stage('Docker Version') {
+        //     steps {
+        //         sh 'docker version'
+        //     }
+        // }
 
         stage('Verify Workspace & Git') {
             steps {
