@@ -208,7 +208,6 @@ pipeline {
                         // if (!fileExists('node_modules') || sh(script: "test package-lock.json -nt node_modules", returnStatus: true) == 0) {
                             echo "Installing npm dependencies..."
                             sh '''
-                                sudo rm -rf node_modules package-lock.json || true
                                 npm ci --legacy-peer-deps
                             '''
                         // } else {
@@ -251,49 +250,49 @@ pipeline {
         }
 
         // // Optional stages for deploy/db/healthcheck can be added here
-        stage('Deploy to Test') {
-            steps {
-                echo "🧪 Deploying test stack on port 8081..."
-                sh '''
-                    docker compose -f docker-compose.yml -f _docker/override-test.yml down || true
-                    docker compose -f docker-compose.yml -f _docker/override-test.yml up -d --build
-                '''
-            }
-        }
         // stage('Deploy to Test') {
         //     steps {
+        //         echo "🧪 Deploying test stack on port 8081..."
         //         sh '''
-        //             echo "🧪 Deploying test stack on port 8081..."
-        //             docker-compose -f docker-compose.yml -f _docker/override-test.yml down || true
-        //             docker-compose -f docker-compose.yml -f _docker/override-test.yml up -d --build
+        //             docker compose -f docker-compose.yml -f _docker/override-test.yml down || true
+        //             docker compose -f docker-compose.yml -f _docker/override-test.yml up -d --build
         //         '''
         //     }
         // }
+        // // stage('Deploy to Test') {
+        // //     steps {
+        // //         sh '''
+        // //             echo "🧪 Deploying test stack on port 8081..."
+        // //             docker-compose -f docker-compose.yml -f _docker/override-test.yml down || true
+        // //             docker-compose -f docker-compose.yml -f _docker/override-test.yml up -d --build
+        // //         '''
+        // //     }
+        // // }
 
-        // stage('Manual Approval for Production') {
+        // // stage('Manual Approval for Production') {
+        // //     steps {
+        // //         input message: '✅ Review the test deployment and approve to deploy to production?'
+        // //     }
+        // // }
+
+        // // stage('Deploy to Production') {
+        // //     steps {
+        // //         sh '''
+        // //             echo "🚀 Deploying production stack on port 80..."
+        // //             docker-compose down || true
+        // //             docker-compose up -d --build
+        // //         '''
+        // //     }
+        // // }
+
+        // stage('Optional: DB Migration & Seeding') {
+        //     when {
+        //         expression { return params.RUN_DB_SEED ?: false }
+        //     }
         //     steps {
-        //         input message: '✅ Review the test deployment and approve to deploy to production?'
+        //         sh 'docker-compose exec -T laravel-api php artisan migrate:fresh --seed || true'
         //     }
         // }
-
-        // stage('Deploy to Production') {
-        //     steps {
-        //         sh '''
-        //             echo "🚀 Deploying production stack on port 80..."
-        //             docker-compose down || true
-        //             docker-compose up -d --build
-        //         '''
-        //     }
-        // }
-
-        stage('Optional: DB Migration & Seeding') {
-            when {
-                expression { return params.RUN_DB_SEED ?: false }
-            }
-            steps {
-                sh 'docker-compose exec -T laravel-api php artisan migrate:fresh --seed || true'
-            }
-        }
     }
 
     post {
