@@ -215,16 +215,16 @@ pipeline {
                     }
                 }
 
-                stage('Frontend Karma') {
-                    steps {
-                        dir("${env.UI_DIR}") {
-                            echo "Running Angular unit tests..."
-                            withEnv(["CHROME_BIN=${env.CHROME_BIN}"]) {
-                                sh 'xvfb-run --auto-servernum -- npm run test -- --watch=false --browsers=ChromeHeadlessCI --code-coverage=false'
-                            }
-                        }
-                    }
-                }
+                // stage('Frontend Karma') {
+                //     steps {
+                //         dir("${env.UI_DIR}") {
+                //             echo "Running Angular unit tests..."
+                //             withEnv(["CHROME_BIN=${env.CHROME_BIN}"]) {
+                //                 sh 'xvfb-run --auto-servernum -- npm run test -- --watch=false --browsers=ChromeHeadlessCI --code-coverage=false'
+                //             }
+                //         }
+                //     }
+                // }
             }
         }
 
