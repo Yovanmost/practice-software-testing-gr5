@@ -186,12 +186,17 @@ pipeline {
             steps {
                 dir("${env.UI_DIR}") {
                     script {
-                        if (!fileExists('node_modules') || sh(script: "test package-lock.json -nt node_modules", returnStatus: true) == 0) {
-                            echo "Installing npm dependencies..."
-                            sh 'npm ci --legacy-peer-deps'
-                        } else {
-                            echo "✔️ Skipping npm install (no changes)"
-                        }
+                        // if (!fileExists('node_modules') || sh(script: "test package-lock.json -nt node_modules", returnStatus: true) == 0) {
+                        //     echo "Installing npm dependencies..."
+                        //     sh 'npm ci --legacy-peer-deps'
+                        // } else {
+                        //     echo "✔️ Skipping npm install (no changes)"
+                        // }
+                        echo "🔁 Cleaning and installing npm dependencies..."
+                        sh '''
+                            rm -rf node_modules
+                            npm ci --legacy-peer-deps
+                        '''
                     }
                 }
             }
