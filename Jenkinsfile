@@ -162,6 +162,17 @@ pipeline {
             }
         }
 
+        stage('Clean Workspace') {
+            steps {
+                echo "🧹 Cleaning node_modules before npm install..."
+                dir("${env.UI_DIR}") {
+                    sh '''
+                        sudo rm -rf node_modules package-lock.json || true
+                        sudo chown -R $USER:$USER . || true
+                    '''
+                }
+            }
+        }
 
         // 🔧 Sequential install to avoid race condition
         stage('Install Backend Dependencies') {
