@@ -293,6 +293,12 @@ pipeline {
                 sh 'docker-compose exec -T laravel-api php artisan migrate:fresh --seed || true'
             }
         }
+
+        stage('Manual Approval for Verification') {
+            steps {
+                input message: '✅ Test deployment complete. Manually verify the app at http://localhost:4200 and click Continue when ready.'
+            }
+        }
     }
 
     post {
