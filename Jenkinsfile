@@ -161,8 +161,8 @@ pipeline {
                 dir("${env.API_DIR}") {
                     script {
                         // Check if PHPUnit is missing
-                        def needsInstall = !fileExists('vendor/bin/phpunit')
-                        if (needsInstall) {
+                        // def needsInstall = !fileExists('vendor/bin/phpunit')
+                        // if (needsInstall) {
                             echo "Installing Composer dependencies..."
                             sh '''
                                 set -e
@@ -173,9 +173,9 @@ pipeline {
                                 php artisan view:clear || echo "view:clear failed"
                                 php artisan route:clear || echo "route:clear failed"
                             '''
-                        } else {
-                            echo "✔️ Skipping Composer install (PHPUnit already exists)"
-                        }
+                        // } else {
+                        //     echo "✔️ Skipping Composer install (PHPUnit already exists)"
+                        // }
                     }
                 }
             }
