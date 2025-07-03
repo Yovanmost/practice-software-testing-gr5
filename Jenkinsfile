@@ -229,6 +229,15 @@ pipeline {
         }
 
         // // Optional stages for deploy/db/healthcheck can be added here
+        stage('Deploy to Test') {
+            steps {
+                echo "🧪 Deploying test stack on port 8081..."
+                sh '''
+                    docker compose -f docker-compose.yml -f _docker/override-test.yml down || true
+                    docker compose -f docker-compose.yml -f _docker/override-test.yml up -d --build
+                '''
+            }
+        }
         // stage('Deploy to Test') {
         //     steps {
         //         sh '''

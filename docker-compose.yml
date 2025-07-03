@@ -141,8 +141,7 @@ services:
       dockerfile: web.docker
     working_dir: /var/www
     volumes:
-      # - laravel-api:/var/www
-      - ./${SPRINT_FOLDER}/API:/var/www:cached
+      - laravel-api:/var/www
       - phpmyadmindata:/var/www/phpmyadmin
     ports:
       - 8091:80
