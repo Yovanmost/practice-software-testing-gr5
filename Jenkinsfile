@@ -155,6 +155,14 @@ pipeline {
             }
         }
 
+        stage('Ensure Clean Test Deployment') {
+            steps {
+                echo "⛔ Stopping previous test deployment (if running)..."
+                sh 'docker compose -f docker-compose.yml -f _docker/override-test.yml down || true'
+            }
+        }
+
+
         // 🔧 Sequential install to avoid race condition
         stage('Install Backend Dependencies') {
             steps {
@@ -188,7 +196,10 @@ pipeline {
                     script {
                         // if (!fileExists('node_modules') || sh(script: "test package-lock.json -nt node_modules", returnStatus: true) == 0) {
                             echo "Installing npm dependencies..."
-                            sh 'npm ci --legacy-peer-deps'
+                            sh '''
+                                rm -rf node_modules package-lock.json
+                                npm ci --legacy-peer-deps
+                            '''
                         // } else {
                         //     echo "✔️ Skipping npm install (no changes)"
                         // }
@@ -283,6 +294,10 @@ pipeline {
         }
         cleanup {
             echo "🧹 Cleanup: Removing unused build artifacts (but not full workspace)"
+        }
+        always {
+            echo "🧹 Cleanup: Stopping test containers..."
+            sh 'docker compose -f docker-compose.yml -f _docker/override-test.yml down || true'
         }
     }
 
