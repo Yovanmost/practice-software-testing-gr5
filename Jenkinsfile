@@ -290,7 +290,10 @@ pipeline {
                 expression { return params.RUN_DB_SEED ?: false }
             }
             steps {
-                sh 'docker-compose exec -T laravel-api php artisan migrate:fresh --seed || true'
+                echo "🌱 Running database migration and seed after test deployment..."
+                sh '''
+                    docker compose -f docker-compose.yml -f _docker/override-test.yml exec -T laravel-api php artisan migrate:fresh --seed
+                '''
             }
         }
 
