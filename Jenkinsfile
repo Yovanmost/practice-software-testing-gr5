@@ -264,14 +264,14 @@ pipeline {
         //     }
         // }
 
-        // stage('Optional: DB Migration & Seeding') {
-        //     when {
-        //         expression { return params.RUN_DB_SEED ?: false }
-        //     }
-        //     steps {
-        //         sh 'docker-compose exec -T laravel-api php artisan migrate:fresh --seed || true'
-        //     }
-        // }
+        stage('Optional: DB Migration & Seeding') {
+            when {
+                expression { return params.RUN_DB_SEED ?: false }
+            }
+            steps {
+                sh 'docker-compose exec -T laravel-api php artisan migrate:fresh --seed || true'
+            }
+        }
     }
 
     post {
