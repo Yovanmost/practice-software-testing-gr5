@@ -197,7 +197,7 @@ pipeline {
                         // if (!fileExists('node_modules') || sh(script: "test package-lock.json -nt node_modules", returnStatus: true) == 0) {
                             echo "Installing npm dependencies..."
                             sh '''
-                                rm -rf node_modules package-lock.json
+                                sudo rm -rf node_modules package-lock.json || true
                                 npm ci --legacy-peer-deps
                             '''
                         // } else {
