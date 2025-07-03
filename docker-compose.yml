@@ -129,6 +129,7 @@ services:
     working_dir: /app
     volumes:
       - ./${SPRINT_FOLDER}/UI:/app:cached
+      - angular_node_modules:/app/node_modules
     ports:
       - 4200:4200
     command: >
@@ -207,3 +208,4 @@ volumes:
   db:
   phpmyadmindata:
   laravel-api:
+  angular_node_modules:
