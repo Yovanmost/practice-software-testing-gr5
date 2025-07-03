@@ -6,6 +6,6 @@ services:
   laravel-api:
     ports:
       - "8092:80"
-  angular-ui:
-    ports:
-      - "4200:4200"
+  # angular-ui:
+  #   ports:
+  #     - "4200:4200"

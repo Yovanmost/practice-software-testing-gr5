@@ -201,22 +201,22 @@ pipeline {
         }
 
 
-        stage('Install Frontend Dependencies') {
-            steps {
-                dir("${env.UI_DIR}") {
-                    script {
-                        // if (!fileExists('node_modules') || sh(script: "test package-lock.json -nt node_modules", returnStatus: true) == 0) {
-                            echo "Installing npm dependencies..."
-                            sh '''
-                                npm ci --legacy-peer-deps
-                            '''
-                        // } else {
-                        //     echo "✔️ Skipping npm install (no changes)"
-                        // }
-                    }
-                }
-            }
-        }
+        // stage('Install Frontend Dependencies') {
+        //     steps {
+        //         dir("${env.UI_DIR}") {
+        //             script {
+        //                 // if (!fileExists('node_modules') || sh(script: "test package-lock.json -nt node_modules", returnStatus: true) == 0) {
+        //                     echo "Installing npm dependencies..."
+        //                     sh '''
+        //                         npm ci --legacy-peer-deps
+        //                     '''
+        //                 // } else {
+        //                 //     echo "✔️ Skipping npm install (no changes)"
+        //                 // }
+        //             }
+        //         }
+        //     }
+        // }
 
         // ✅ Tests in parallel
         stage('Run Tests') {
