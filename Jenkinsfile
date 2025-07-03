@@ -254,8 +254,8 @@ pipeline {
             steps {
                 echo "🧪 Deploying test stack on port 8081..."
                 sh '''
-                    docker compose -f docker-compose.yml -f _docker/override-test.yml down || true
-                    docker compose -f docker-compose.yml -f _docker/override-test.yml up -d --build
+                    docker compose -f docker-compose.yml down || true
+                    docker compose -f docker-compose.yml up -d --build
                 '''
             }
         }
@@ -292,7 +292,7 @@ pipeline {
             steps {
                 echo "🌱 Running database migration and seed after test deployment..."
                 sh '''
-                    docker compose -f docker-compose.yml -f _docker/override-test.yml exec -T laravel-api php artisan migrate:fresh --seed
+                    docker compose -f docker-compose.yml exec -T laravel-api php artisan migrate:fresh --seed
                 '''
             }
         }
@@ -316,7 +316,7 @@ pipeline {
         }
         always {
             echo "🧹 Cleanup: Stopping test containers..."
-            sh 'docker compose -f docker-compose.yml -f _docker/override-test.yml down || true'
+            sh 'docker compose -f docker-compose.yml down || true'
         }
     }
 
