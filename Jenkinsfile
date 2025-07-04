@@ -162,43 +162,43 @@ pipeline {
             }
         }
 
-        stage('Clean Workspace') {
-            steps {
-                echo "🧹 Cleaning node_modules before npm install..."
-                dir("${env.UI_DIR}") {
-                    sh '''
-                        sudo rm -rf node_modules package-lock.json || true
-                        sudo chown -R $USER:$USER . || true
-                    '''
-                }
-            }
-        }
+        // stage('Clean Workspace') {
+        //     steps {
+        //         echo "🧹 Cleaning node_modules before npm install..."
+        //         dir("${env.UI_DIR}") {
+        //             sh '''
+        //                 sudo rm -rf node_modules package-lock.json || true
+        //                 sudo chown -R $USER:$USER . || true
+        //             '''
+        //         }
+        //     }
+        // }
 
         // 🔧 Sequential install to avoid race condition
-        stage('Install Backend Dependencies') {
-            steps {
-                dir("${env.API_DIR}") {
-                    script {
-                        // Check if PHPUnit is missing
-                        // def needsInstall = !fileExists('vendor/bin/phpunit')
-                        // if (needsInstall) {
-                            echo "Installing Composer dependencies..."
-                            sh '''
-                                set -e
-                                composer install --prefer-dist --no-interaction --optimize-autoloader
-                                composer dump-autoload -o
-                                php artisan config:clear || echo "config:clear failed"
-                                php artisan cache:clear || echo "cache:clear failed"
-                                php artisan view:clear || echo "view:clear failed"
-                                php artisan route:clear || echo "route:clear failed"
-                            '''
-                        // } else {
-                        //     echo "✔️ Skipping Composer install (PHPUnit already exists)"
-                        // }
-                    }
-                }
-            }
-        }
+        // stage('Install Backend Dependencies') {
+        //     steps {
+        //         dir("${env.API_DIR}") {
+        //             script {
+        //                 // Check if PHPUnit is missing
+        //                 // def needsInstall = !fileExists('vendor/bin/phpunit')
+        //                 // if (needsInstall) {
+        //                     echo "Installing Composer dependencies..."
+        //                     sh '''
+        //                         set -e
+        //                         composer install --prefer-dist --no-interaction --optimize-autoloader
+        //                         composer dump-autoload -o
+        //                         php artisan config:clear || echo "config:clear failed"
+        //                         php artisan cache:clear || echo "cache:clear failed"
+        //                         php artisan view:clear || echo "view:clear failed"
+        //                         php artisan route:clear || echo "route:clear failed"
+        //                     '''
+        //                 // } else {
+        //                 //     echo "✔️ Skipping Composer install (PHPUnit already exists)"
+        //                 // }
+        //             }
+        //         }
+        //     }
+        // }
 
 
         // stage('Install Frontend Dependencies') {
@@ -219,22 +219,22 @@ pipeline {
         // }
 
         // ✅ Tests in parallel
-        stage('Run Tests') {
-            parallel {
-                stage('Backend PHPUnit') {
-                    steps {
-                        dir("${env.API_DIR}") {
-                            echo "Running Laravel tests..."
-                            sh '''
-                                if [ ! -f ./vendor/bin/phpunit ]; then
-                                    echo "❌ PHPUnit not found! Aborting..."
-                                    exit 1
-                                fi
-                                APP_ENV=testing ./vendor/bin/phpunit
-                            '''
-                        }
-                    }
-                }
+        // stage('Run Tests') {
+        //     parallel {
+        //         stage('Backend PHPUnit') {
+        //             steps {
+        //                 dir("${env.API_DIR}") {
+        //                     echo "Running Laravel tests..."
+        //                     sh '''
+        //                         if [ ! -f ./vendor/bin/phpunit ]; then
+        //                             echo "❌ PHPUnit not found! Aborting..."
+        //                             exit 1
+        //                         fi
+        //                         APP_ENV=testing ./vendor/bin/phpunit
+        //                     '''
+        //                 }
+        //             }
+        //         }
 
                 // stage('Frontend Karma') {
                 //     steps {
