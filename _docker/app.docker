@@ -25,3 +25,7 @@ RUN usermod -u 1000 www-data
 RUN chown -R www-data:www-data /var/www
 
 USER www-data
+
+
+# ✅ Copy .env.prod into .env at runtime, then start PHP-FPM
+CMD cp /var/www/.env.prod /var/www/.env && php-fpm
