@@ -118,6 +118,15 @@ pipeline {
             }
         }
 
+        stage('Clean up test') {
+            steps {
+                echo "Clean up test deployment."
+                sh """
+                    ${COMPOSE} -p ${TEST_PROJECT} down || true
+                """
+            }
+        }
+
         stage('Deploy to Production') {
             steps {
                 echo "🚀 Deploying production stack on port 80..."
