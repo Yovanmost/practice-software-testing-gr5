@@ -19,3 +19,8 @@ services:
   web:
     ports:
       - 8099:80  # Serve Laravel via Nginx on http://localhost
+
+  mailcatcher:
+    ports:
+      - 2025:1025  # SMTP
+      - 2080:1080  # Web UI
