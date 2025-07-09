@@ -158,7 +158,7 @@ pipeline {
         stage('Ensure Clean Test Deployment') {
             steps {
                 echo "⛔ Stopping previous test deployment (if running)..."
-                sh 'docker compose -f docker-compose.yml -f _docker/override-test.yml down || true'
+                sh 'docker compose -f docker-compose.yml down || true'
             }
         }
 
