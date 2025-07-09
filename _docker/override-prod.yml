@@ -3,7 +3,7 @@ version: '2'
 services:
   laravel-api:
     volumes:
-      - ./sprint5-with-bugs/API/.env.prod:/var/www/.env
+      - ./sprint5-with-bugs/API/.env.prod:/var/www/.env.prod
 
   angular-ui:
     build:
