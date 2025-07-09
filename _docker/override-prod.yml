@@ -15,8 +15,7 @@ services:
     ports:
       - 4201:4200  # Serve Angular on http://localhost:4201
     command: >
-      bash -c "npm install --force && ng build --configuration production && npx http-server dist/toolshop -p 4200"
-
+        bash -c "npm install --force && ng build --configuration production && npx http-server dist/toolshop -a 127.0.0.1 -p 4200"
   web:
     ports:
       - 8099:80  # Serve Laravel via Nginx on http://localhost
