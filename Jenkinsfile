@@ -263,7 +263,7 @@ pipeline {
             steps {
                 echo "Deploying to test (port 8091)..."
                 sh '''
-                    docker compose -f docker-compose.yml -f _docker/override-test.yml up -d --build
+                    docker compose -f docker-compose.yml up -d --build
                 '''
             }
         }
@@ -360,7 +360,7 @@ pipeline {
         always {
             echo "🧹 Stopping test and prod containers to avoid leftover..."
             sh '''
-                docker compose -f docker-compose.yml -f _docker/override-test.yml down || true
+                docker compose -f docker-compose.yml down || true
                 docker compose -f docker-compose.yml -f docker-compose.override-prod.yml down || true
             '''
         }
