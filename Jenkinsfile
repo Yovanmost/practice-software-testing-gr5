@@ -10,6 +10,10 @@ pipeline {
         API_DIR = "sprint5-with-bugs/API"
         UI_DIR = "sprint5-with-bugs/UI"
         CHROME_BIN = "/usr/bin/chromium"
+
+        COMPOSE = "docker compose -f docker-compose.yml"
+        TEST_PROJECT = "ci-test"
+        PROD_PROJECT = "ci-prod"
     }
 
     options {
@@ -23,7 +27,7 @@ pipeline {
     stages {
         stage('Verify Workspace & Git') {
             steps {
-                echo "Agent workspace: ${WORKSPACE}"
+                echo "Agent workspace: ${env.WORKSPACE}"
                 sh 'ls -la'
                 sh 'git --version'
             }
@@ -32,7 +36,7 @@ pipeline {
         stage('Ensure Clean Test Deployment') {
             steps {
                 echo "⛔ Stopping previous test deployment (if running)..."
-                sh 'docker compose -f docker-compose.yml down || true'
+                sh "${COMPOSE} -p ${TEST_PROJECT} down || true"
             }
         }
 
@@ -82,17 +86,17 @@ pipeline {
                     }
                 }
 
-                // Frontend tests can be re-enabled if needed
+                // Add frontend tests here if needed
             }
         }
 
         stage('Deploy to Test') {
             steps {
                 echo "🧪 Deploying test stack on port 8081..."
-                sh '''
-                    docker compose -f docker-compose.yml down || true
-                    docker compose -f docker-compose.yml up -d --build
-                '''
+                sh """
+                    ${COMPOSE} -p ${TEST_PROJECT} down || true
+                    ${COMPOSE} -p ${TEST_PROJECT} up -d --build
+                """
             }
         }
 
@@ -102,9 +106,9 @@ pipeline {
             }
             steps {
                 echo "🌱 Running DB migrate:fresh --seed after test deployment..."
-                sh '''
-                    docker compose -f docker-compose.yml exec -T laravel-api php artisan migrate:fresh --seed
-                '''
+                sh """
+                    ${COMPOSE} -p ${TEST_PROJECT} exec -T laravel-api php artisan migrate:fresh --seed
+                """
             }
         }
 
@@ -117,10 +121,10 @@ pipeline {
         stage('Deploy to Production') {
             steps {
                 echo "🚀 Deploying production stack on port 80..."
-                sh '''
-                    docker compose -f docker-compose.yml -f _docker/override-prod.yml down || true
-                    docker compose -f docker-compose.yml -f _docker/override-prod.yml up -d --build
-                '''
+                sh """
+                    docker compose -f docker-compose.yml -f _docker/override-prod.yml -p ${PROD_PROJECT} down || true
+                    docker compose -f docker-compose.yml -f _docker/override-prod.yml -p ${PROD_PROJECT} up -d --build
+                """
             }
         }
 
@@ -130,9 +134,9 @@ pipeline {
             }
             steps {
                 echo "🌱 Running DB migrate:fresh --seed for production..."
-                sh '''
-                    docker compose -f docker-compose.yml -f _docker/override-prod.yml exec -T laravel-api php artisan migrate:fresh --seed
-                '''
+                sh """
+                    docker compose -f docker-compose.yml -f _docker/override-prod.yml -p ${PROD_PROJECT} exec -T laravel-api php artisan migrate:fresh --seed
+                """
             }
         }
     }
@@ -146,7 +150,7 @@ pipeline {
         }
         always {
             echo "🧹 Cleanup: Stopping test containers..."
-            sh 'docker compose -f docker-compose.yml down || true'
+            sh "${COMPOSE} -p ${TEST_PROJECT} down || true"
         }
     }
 }
