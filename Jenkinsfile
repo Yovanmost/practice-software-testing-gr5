@@ -140,10 +140,6 @@ pipeline {
         timestamps()
     }
 
-    parameters {
-        booleanParam(name: 'RUN_DB_SEED', defaultValue: false, description: 'Run php artisan migrate:fresh --seed')
-    }
-
     stages {
         // stage('Docker Version') {
         //     steps {
@@ -159,18 +155,12 @@ pipeline {
             }
         }
 
-        stage('Stop Previous Test Deployment') {
+        stage('Ensure Clean Test Deployment') {
             steps {
+                echo "⛔ Stopping previous test deployment (if running)..."
                 sh 'docker compose -f docker-compose.yml -f _docker/override-test.yml down || true'
             }
         }
-
-        // stage('Ensure Clean Test Deployment') {
-        //     steps {
-        //         echo "⛔ Stopping previous test deployment (if running)..."
-        //         sh 'docker compose -f docker-compose.yml -f _docker/override-test.yml down || true'
-        //     }
-        // }
 
         // stage('Clean Workspace') {
         //     steps {
@@ -208,7 +198,7 @@ pipeline {
         //             }
         //         }
         //     }
-        // }
+       z // }
 
 
         // stage('Install Frontend Dependencies') {
@@ -246,65 +236,29 @@ pipeline {
         //             }
         //         }
 
-        //         // stage('Frontend Karma') {
-        //         //     steps {
-        //         //         dir("${env.UI_DIR}") {
-        //         //             echo "Running Angular unit tests..."
-        //         //             withEnv(["CHROME_BIN=${env.CHROME_BIN}"]) {
-        //         //                 sh 'xvfb-run --auto-servernum -- npm run test -- --watch=false --browsers=ChromeHeadlessCI --code-coverage=false'
-        //         //             }
-        //         //         }
-        //         //     }
-        //         // }
+                // stage('Frontend Karma') {
+                //     steps {
+                //         dir("${env.UI_DIR}") {
+                //             echo "Running Angular unit tests..."
+                //             withEnv(["CHROME_BIN=${env.CHROME_BIN}"]) {
+                //                 sh 'xvfb-run --auto-servernum -- npm run test -- --watch=false --browsers=ChromeHeadlessCI --code-coverage=false'
+                //             }
+                //         }
+                //     }
+                // }
         //     }
         // }
 
+        // // Optional stages for deploy/db/healthcheck can be added here
         stage('Deploy to Test') {
             steps {
-                echo "Deploying to test (port 8091)..."
+                echo "🧪 Deploying test stack on port 8081..."
                 sh '''
+                    docker compose -f docker-compose.yml down || true
                     docker compose -f docker-compose.yml up -d --build
                 '''
             }
         }
-
-        stage('Optional: DB Migration & Seeding') {
-            when {
-                expression { return params.RUN_DB_SEED }
-            }
-            steps {
-                sh '''
-                    docker compose -f docker-compose.yml exec -T laravel-api php artisan migrate:fresh --seed
-                '''
-            }
-        }
-
-        stage('Manual Approval Before Production') {
-            steps {
-                input message: '✅ App deployed to test at http://localhost:8091. Manually verify and click Continue to deploy to production.'
-            }
-        }
-
-        stage('Deploy to Production') {
-            steps {
-                echo "🚀 Deploying to production (port 80)..."
-                sh '''
-                    docker compose -f docker-compose.yml -f docker-compose.override-prod.yml down || true
-                    docker compose -f docker-compose.yml -f docker-compose.override-prod.yml up -d --build
-                '''
-            }
-        }
-
-        // // Optional stages for deploy/db/healthcheck can be added here
-        // stage('Deploy to Test') {
-        //     steps {
-        //         echo "🧪 Deploying test stack on port 8081..."
-        //         sh '''
-        //             docker compose -f docker-compose.yml down || true
-        //             docker compose -f docker-compose.yml up -d --build
-        //         '''
-        //     }
-        // }
         // // stage('Deploy to Test') {
         // //     steps {
         // //         sh '''
@@ -331,42 +285,42 @@ pipeline {
         // //     }
         // // }
 
-        // stage('Optional: DB Migration & Seeding') {
-        //     when {
-        //         expression { return params.RUN_DB_SEED ?: false }
-        //     }
-        //     steps {
-        //         echo "🌱 Running database migration and seed after test deployment..."
-        //         sh '''
-        //             docker compose -f docker-compose.yml exec -T laravel-api php artisan migrate:fresh --seed
-        //         '''
-        //     }
-        // }
+        stage('Optional: DB Migration & Seeding') {
+            when {
+                expression { return params.RUN_DB_SEED ?: false }
+            }
+            steps {
+                echo "🌱 Running database migration and seed after test deployment..."
+                sh '''
+                    docker compose -f docker-compose.yml exec -T laravel-api php artisan migrate:fresh --seed
+                '''
+            }
+        }
 
-        // stage('Manual Approval for Verification') {
-        //     steps {
-        //         input message: '✅ Test deployment complete. Manually verify the app at http://localhost:4200 and click Continue when ready.'
-        //     }
-        // }
+        stage('Manual Approval for Verification') {
+            steps {
+                input message: '✅ Test deployment complete. Manually verify the app at http://localhost:4200 and click Continue when ready.'
+            }
+        }
     }
 
     post {
         success {
-            echo "✅ CI/CD pipeline completed!"
+            echo "✅ CI pipeline completed successfully!"
         }
         failure {
-            echo "❌ Pipeline failed!"
+            echo "❌ CI pipeline failed!"
+        }
+        cleanup {
+            echo "🧹 Cleanup: Removing unused build artifacts (but not full workspace)"
         }
         always {
-            echo "🧹 Stopping test and prod containers to avoid leftover..."
-            sh '''
-                docker compose -f docker-compose.yml down || true
-                docker compose -f docker-compose.yml -f docker-compose.override-prod.yml down || true
-            '''
+            echo "🧹 Cleanup: Stopping test containers..."
+            sh 'docker compose -f docker-compose.yml down || true'
         }
     }
 
-    // parameters {
-    //     booleanParam(name: 'RUN_DB_SEED', defaultValue: false, description: 'Run php artisan migrate:fresh --seed after deploy')
-    // }
+    parameters {
+        booleanParam(name: 'RUN_DB_SEED', defaultValue: false, description: 'Run php artisan migrate:fresh --seed after deploy')
+    }
 }
