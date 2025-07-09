@@ -1,0 +1,22 @@
+version: '2'
+
+services:
+  laravel-api:
+    volumes:
+      - ./sprint5-with-bugs/API/.env.prod:/var/www/.env
+
+  angular-ui:
+    build:
+      context: ./_docker
+      dockerfile: ui.docker
+    working_dir: /app
+    volumes:
+      - ./sprint5-with-bugs/UI:/app:cached
+    ports:
+      - 4201:4200  # Serve Angular on http://localhost:4201
+    command: >
+      bash -c "npm install --force && ng build --configuration production && npx http-server dist/toolshop -p 4200"
+
+  web:
+    ports:
+      - 8099:80  # Serve Laravel via Nginx on http://localhost
