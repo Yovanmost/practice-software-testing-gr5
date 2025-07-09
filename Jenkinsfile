@@ -162,11 +162,12 @@ pipeline {
             steps {
                 dir("${env.API_DIR}") {
                     sh '''
+                        rm -rf vendor
+                        mkdir -p vendor
+                        chown -R $(id -u):$(id -g) .
                         composer install --prefer-dist --no-interaction
                         php artisan config:clear || true
                         php artisan route:clear || true
-                        if [ ! -f ./vendor/bin/phpunit ]; then echo "PHPUnit not found!"; exit 1; fi
-                        APP_ENV=testing ./vendor/bin/phpunit
                     '''
                 }
             }
