@@ -133,194 +133,95 @@ pipeline {
         API_DIR = "sprint5-with-bugs/API"
         UI_DIR = "sprint5-with-bugs/UI"
         CHROME_BIN = "/usr/bin/chromium"
-        // DOCKER_HOST = 'tcp://host.docker.internal:2375'
     }
 
     options {
         timestamps()
     }
 
-    stages {
-        // stage('Docker Version') {
-        //     steps {
-        //         sh 'docker version'
-        //     }
-        // }
+    parameters {
+        booleanParam(name: 'RUN_DB_SEED', defaultValue: false, description: 'Run php artisan migrate:fresh --seed')
+    }
 
+    stages {
         stage('Verify Workspace & Git') {
             steps {
-                echo "Agent workspace: ${WORKSPACE}"
+                echo "Workspace: ${WORKSPACE}"
                 sh 'ls -la'
                 sh 'git --version'
             }
         }
 
-        stage('Ensure Clean Test Deployment') {
+        stage('Stop Previous Test Deployment') {
             steps {
-                echo "⛔ Stopping previous test deployment (if running)..."
                 sh 'docker compose -f docker-compose.yml -f _docker/override-test.yml down || true'
             }
         }
 
-        // stage('Clean Workspace') {
-        //     steps {
-        //         echo "🧹 Cleaning node_modules before npm install..."
-        //         dir("${env.UI_DIR}") {
-        //             sh '''
-        //                 sudo rm -rf node_modules package-lock.json || true
-        //                 sudo chown -R $USER:$USER . || true
-        //             '''
-        //         }
-        //     }
-        // }
+        stage('Run Backend Unit Tests') {
+            steps {
+                dir("${env.API_DIR}") {
+                    sh '''
+                        composer install --prefer-dist --no-interaction
+                        php artisan config:clear || true
+                        php artisan route:clear || true
+                        if [ ! -f ./vendor/bin/phpunit ]; then echo "PHPUnit not found!"; exit 1; fi
+                        APP_ENV=testing ./vendor/bin/phpunit
+                    '''
+                }
+            }
+        }
 
-        // 🔧 Sequential install to avoid race condition
-        // stage('Install Backend Dependencies') {
-        //     steps {
-        //         dir("${env.API_DIR}") {
-        //             script {
-        //                 // Check if PHPUnit is missing
-        //                 // def needsInstall = !fileExists('vendor/bin/phpunit')
-        //                 // if (needsInstall) {
-        //                     echo "Installing Composer dependencies..."
-        //                     sh '''
-        //                         set -e
-        //                         composer install --prefer-dist --no-interaction --optimize-autoloader
-        //                         composer dump-autoload -o
-        //                         php artisan config:clear || echo "config:clear failed"
-        //                         php artisan cache:clear || echo "cache:clear failed"
-        //                         php artisan view:clear || echo "view:clear failed"
-        //                         php artisan route:clear || echo "route:clear failed"
-        //                     '''
-        //                 // } else {
-        //                 //     echo "✔️ Skipping Composer install (PHPUnit already exists)"
-        //                 // }
-        //             }
-        //         }
-        //     }
-        // }
-
-
-        // stage('Install Frontend Dependencies') {
-        //     steps {
-        //         dir("${env.UI_DIR}") {
-        //             script {
-        //                 // if (!fileExists('node_modules') || sh(script: "test package-lock.json -nt node_modules", returnStatus: true) == 0) {
-        //                     echo "Installing npm dependencies..."
-        //                     sh '''
-        //                         npm ci --legacy-peer-deps
-        //                     '''
-        //                 // } else {
-        //                 //     echo "✔️ Skipping npm install (no changes)"
-        //                 // }
-        //             }
-        //         }
-        //     }
-        // }
-
-        // ✅ Tests in parallel
-        // stage('Run Tests') {
-        //     parallel {
-        //         stage('Backend PHPUnit') {
-        //             steps {
-        //                 dir("${env.API_DIR}") {
-        //                     echo "Running Laravel tests..."
-        //                     sh '''
-        //                         if [ ! -f ./vendor/bin/phpunit ]; then
-        //                             echo "❌ PHPUnit not found! Aborting..."
-        //                             exit 1
-        //                         fi
-        //                         APP_ENV=testing ./vendor/bin/phpunit
-        //                     '''
-        //                 }
-        //             }
-        //         }
-
-                // stage('Frontend Karma') {
-                //     steps {
-                //         dir("${env.UI_DIR}") {
-                //             echo "Running Angular unit tests..."
-                //             withEnv(["CHROME_BIN=${env.CHROME_BIN}"]) {
-                //                 sh 'xvfb-run --auto-servernum -- npm run test -- --watch=false --browsers=ChromeHeadlessCI --code-coverage=false'
-                //             }
-                //         }
-                //     }
-                // }
-        //     }
-        // }
-
-        // // Optional stages for deploy/db/healthcheck can be added here
         stage('Deploy to Test') {
             steps {
-                echo "🧪 Deploying test stack on port 8081..."
+                echo "Deploying to test (port 8091)..."
                 sh '''
-                    docker compose -f docker-compose.yml down || true
-                    docker compose -f docker-compose.yml up -d --build
+                    docker compose -f docker-compose.yml -f _docker/override-test.yml up -d --build
                 '''
             }
         }
-        // // stage('Deploy to Test') {
-        // //     steps {
-        // //         sh '''
-        // //             echo "🧪 Deploying test stack on port 8081..."
-        // //             docker-compose -f docker-compose.yml -f _docker/override-test.yml down || true
-        // //             docker-compose -f docker-compose.yml -f _docker/override-test.yml up -d --build
-        // //         '''
-        // //     }
-        // // }
-
-        // // stage('Manual Approval for Production') {
-        // //     steps {
-        // //         input message: '✅ Review the test deployment and approve to deploy to production?'
-        // //     }
-        // // }
-
-        // // stage('Deploy to Production') {
-        // //     steps {
-        // //         sh '''
-        // //             echo "🚀 Deploying production stack on port 80..."
-        // //             docker-compose down || true
-        // //             docker-compose up -d --build
-        // //         '''
-        // //     }
-        // // }
 
         stage('Optional: DB Migration & Seeding') {
             when {
-                expression { return params.RUN_DB_SEED ?: false }
+                expression { return params.RUN_DB_SEED }
             }
             steps {
-                echo "🌱 Running database migration and seed after test deployment..."
                 sh '''
                     docker compose -f docker-compose.yml exec -T laravel-api php artisan migrate:fresh --seed
                 '''
             }
         }
 
-        stage('Manual Approval for Verification') {
+        stage('Manual Approval Before Production') {
             steps {
-                input message: '✅ Test deployment complete. Manually verify the app at http://localhost:4200 and click Continue when ready.'
+                input message: '✅ App deployed to test at http://localhost:8091. Manually verify and click Continue to deploy to production.'
+            }
+        }
+
+        stage('Deploy to Production') {
+            steps {
+                echo "🚀 Deploying to production (port 80)..."
+                sh '''
+                    docker compose -f docker-compose.yml -f docker-compose.override-prod.yml down || true
+                    docker compose -f docker-compose.yml -f docker-compose.override-prod.yml up -d --build
+                '''
             }
         }
     }
 
     post {
         success {
-            echo "✅ CI pipeline completed successfully!"
+            echo "✅ CI/CD pipeline completed!"
         }
         failure {
-            echo "❌ CI pipeline failed!"
-        }
-        cleanup {
-            echo "🧹 Cleanup: Removing unused build artifacts (but not full workspace)"
+            echo "❌ Pipeline failed!"
         }
         always {
-            echo "🧹 Cleanup: Stopping test containers..."
-            sh 'docker compose -f docker-compose.yml down || true'
+            echo "🧹 Stopping test and prod containers to avoid leftover..."
+            sh '''
+                docker compose -f docker-compose.yml -f _docker/override-test.yml down || true
+                docker compose -f docker-compose.yml -f docker-compose.override-prod.yml down || true
+            '''
         }
-    }
-
-    parameters {
-        booleanParam(name: 'RUN_DB_SEED', defaultValue: false, description: 'Run php artisan migrate:fresh --seed after deploy')
     }
 }

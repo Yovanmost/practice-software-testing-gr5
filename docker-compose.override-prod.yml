@@ -1,0 +1,32 @@
+version: '2'
+services:
+  laravel-api:
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - DB_PORT=3306
+      - DB_HOST=mariadb
+      - DISABLE_LOGGING=${DISABLE_LOGGING}
+
+  angular-ui:
+    ports:
+      - 80:4200  # Serve frontend directly on port 80
+
+  web:
+    ports:
+      - 80:80
+    depends_on:
+      - laravel-api
+
+  mariadb:
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: user
+      MYSQL_PASSWORD: root
+      MYSQL_DATABASE: toolshop
+
+volumes:
+  db:
+  laravel-api:
