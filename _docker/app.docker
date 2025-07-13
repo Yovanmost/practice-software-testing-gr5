@@ -25,3 +25,6 @@ RUN usermod -u 1000 www-data
 RUN chown -R www-data:www-data /var/www
 
 USER www-data
+
+# Add before any PHP script execution
+COPY --from=composer:2.6 /usr/bin/composer /usr/bin/composer
