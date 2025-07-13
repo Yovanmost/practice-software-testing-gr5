@@ -3,9 +3,6 @@ services:
   # The Application
   laravel-api:
     user: "${HOST_UID}:${HOST_GID}"
-    environment:
-      - HOST_UID
-      - HOST_GID
     build:
       context: ./_docker
       dockerfile: app.docker
@@ -13,6 +10,8 @@ services:
     volumes:
       - ./${SPRINT_FOLDER}/API:/var/www:cached
     environment:
+      - HOST_UID
+      - HOST_GID
       - "PHP_OPCACHE_VALIDATE_TIMESTAMPS=1"
       - "DB_PORT=3306"
       - "DB_HOST=mariadb"
