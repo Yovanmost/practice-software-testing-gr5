@@ -80,12 +80,13 @@ pipeline {
             steps {
                 echo "🔧 Fixing vendor folder ownership for Jenkins agent..."
                 sh """
-                    ${COMPOSE} exec -T laravel-api sh -c '
+                    ${COMPOSE} exec --user root -T laravel-api sh -c '
                         chown -R ${HOST_UID}:${HOST_GID} /var/www/vendor || true
                     '
                 """
             }
         }
+
 
         stage('Run Backend Unit Tests') {
             steps {
