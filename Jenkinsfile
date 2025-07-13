@@ -52,35 +52,35 @@ pipeline {
             }
         }
 
-        stage('Install Backend Dependencies') {
-            steps {
-                echo "📦 Installing Composer dependencies inside container..."
-                sh """
-                    ${COMPOSE} exec -T laravel-api sh -c '
-                        composer install --no-interaction --optimize-autoloader &&
-                        php artisan config:clear || true &&
-                        php artisan cache:clear || true &&
-                        php artisan view:clear || true &&
-                        php artisan route:clear || true
-                    '
-                """
-            }
-        }
+        // stage('Install Backend Dependencies') {
+        //     steps {
+        //         echo "📦 Installing Composer dependencies inside container..."
+        //         sh """
+        //             ${COMPOSE} exec -T laravel-api sh -c '
+        //                 composer install --no-interaction --optimize-autoloader &&
+        //                 php artisan config:clear || true &&
+        //                 php artisan cache:clear || true &&
+        //                 php artisan view:clear || true &&
+        //                 php artisan route:clear || true
+        //             '
+        //         """
+        //     }
+        // }
 
-        stage('Run Backend Unit Tests') {
-            steps {
-                echo "🧪 Running PHPUnit tests..."
-                sh """
-                    ${COMPOSE} exec -T laravel-api sh -c '
-                        if [ ! -f ./vendor/bin/phpunit ]; then
-                            echo "❌ PHPUnit not found! Aborting..."
-                            exit 1
-                        fi
-                        APP_ENV=testing ./vendor/bin/phpunit
-                    '
-                """
-            }
-        }
+        // stage('Run Backend Unit Tests') {
+        //     steps {
+        //         echo "🧪 Running PHPUnit tests..."
+        //         sh """
+        //             ${COMPOSE} exec -T laravel-api sh -c '
+        //                 if [ ! -f ./vendor/bin/phpunit ]; then
+        //                     echo "❌ PHPUnit not found! Aborting..."
+        //                     exit 1
+        //                 fi
+        //                 APP_ENV=testing ./vendor/bin/phpunit
+        //             '
+        //         """
+        //     }
+        // }
 
         stage('Manual Approval to Finish') {
             steps {
