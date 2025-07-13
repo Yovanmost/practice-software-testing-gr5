@@ -1,0 +1,31 @@
+# version: '2'
+
+# services:
+#   laravel-api:
+#     volumes:
+#       - ./sprint5-with-bugs/API/.env.prod:/var/www/.env.prod
+
+#   angular-ui:
+#     build:
+#       context: ./_docker
+#       dockerfile: ui.docker
+#     working_dir: /app
+#     volumes:
+#       - ./sprint5-with-bugs/UI:/app:cached
+#     ports:
+#       - 4201:4200  # Serve Angular on http://localhost:4201
+#     command: >
+#           bash -c "npm install --force && ng build --configuration production && npx http-server dist/toolshop -a 0.0.0.0 -p 4200"
+#   web:
+#     ports:
+#       - 8099:80  # Serve Laravel via Nginx on http://localhost
+
+#   mailcatcher:
+#     ports:
+#       - 2025:1025  # SMTP
+#       - 2080:1080  # Web UI
+version: '2'
+services:
+  angular-ui:
+    ports:
+      - 4201:4200
