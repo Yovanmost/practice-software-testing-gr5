@@ -10,7 +10,6 @@ pipeline {
         API_DIR = "${SPRINT_FOLDER}/API"
         COMPOSE = "docker compose -f docker-compose.yml"
         REQUIRED_PORTS = "4200 8091 8000 3306 1025 1080"
-        CONTAINER_USER = "www-data"
     }
 
     options {
@@ -18,6 +17,15 @@ pipeline {
     }
 
     stages {
+        stage('Get Host UID/GID') {
+            steps {
+                script {
+                    env.HOST_UID = sh(script: "id -u", returnStdout: true).trim()
+                    env.HOST_GID = sh(script: "id -g", returnStdout: true).trim()
+                }
+            }
+        }
+
         stage('Checkout & Verify') {
             steps {
                 echo "🔍 Verifying workspace and Git"
@@ -45,19 +53,19 @@ pipeline {
 
         stage('Deploy Test Environment') {
             steps {
-                echo "🚧 Starting services..."
+                echo "🚧 Starting services with correct UID/GID..."
                 sh """
-                    ${COMPOSE} down || true
-                    ${COMPOSE} up -d --build
+                    HOST_UID=${env.HOST_UID} HOST_GID=${env.HOST_GID} ${COMPOSE} down || true
+                    HOST_UID=${env.HOST_UID} HOST_GID=${env.HOST_GID} ${COMPOSE} up -d --build
                 """
             }
         }
 
         stage('Install Backend Dependencies') {
             steps {
-                echo "📦 Installing Composer dependencies inside container as non-root..."
+                echo "📦 Installing Composer dependencies inside container..."
                 sh """
-                    ${COMPOSE} exec -T --user=${CONTAINER_USER} laravel-api sh -c '
+                    ${COMPOSE} exec -T laravel-api sh -c '
                         composer install --no-interaction --optimize-autoloader &&
                         php artisan config:clear || true &&
                         php artisan cache:clear || true &&
@@ -72,7 +80,7 @@ pipeline {
             steps {
                 echo "🧪 Running PHPUnit tests..."
                 sh """
-                    ${COMPOSE} exec -T --user=${CONTAINER_USER} laravel-api sh -c '
+                    ${COMPOSE} exec -T laravel-api sh -c '
                         if [ ! -f ./vendor/bin/phpunit ]; then
                             echo "❌ PHPUnit not found! Aborting..."
                             exit 1

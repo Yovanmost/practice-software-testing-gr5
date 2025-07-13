@@ -2,6 +2,10 @@ version: '2'
 services:
   # The Application
   laravel-api:
+    user: "${HOST_UID}:${HOST_GID}"
+    environment:
+      - HOST_UID
+      - HOST_GID
     build:
       context: ./_docker
       dockerfile: app.docker
