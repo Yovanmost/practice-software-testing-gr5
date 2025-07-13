@@ -17,9 +17,3 @@ RUN apk add --no-cache --virtual build-essentials \
 ADD laravel_crontab /etc/periodic/1min/laravel_crontab
 
 RUN echo "*    *       *       *       *       run-parts /etc/periodic/1min" >> /etc/crontabs/root
-
-# ✅ Install Composer
-### ADD ↓↓↓
-RUN curl -sS https://getcomposer.org/installer | php && \
-    mv composer.phar /usr/local/bin/composer
-### ADD ↑↑↑
