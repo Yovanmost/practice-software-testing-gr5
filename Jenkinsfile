@@ -65,13 +65,23 @@ pipeline {
             steps {
                 echo "📦 Installing Composer dependencies inside container..."
                 sh """
-                    ${COMPOSE} exec -T laravel-api composer install --no-interaction
                     ${COMPOSE} exec -T laravel-api sh -c '
                         composer install --no-interaction --optimize-autoloader &&
                         php artisan config:clear || true &&
                         php artisan cache:clear || true &&
                         php artisan view:clear || true &&
                         php artisan route:clear || true
+                    '
+                """
+            }
+        }
+
+        stage('Fix Vendor Permissions') {
+            steps {
+                echo "🔧 Fixing vendor folder ownership for Jenkins agent..."
+                sh """
+                    ${COMPOSE} exec -T laravel-api sh -c '
+                        chown -R ${HOST_UID}:${HOST_GID} /var/www/vendor || true
                     '
                 """
             }
