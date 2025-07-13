@@ -17,6 +17,7 @@ pipeline {
     }
 
     stages {
+
         stage('Get Host UID/GID') {
             steps {
                 script {
@@ -51,22 +52,14 @@ pipeline {
             }
         }
 
-        stage('Deploy Test Environment') {
+        stage('Build for Test (Composer dev + test)') {
             steps {
-                echo "🚧 Starting services with correct UID/GID..."
+                echo "🔧 Building backend for testing (including dev dependencies)..."
                 sh """
-                    HOST_UID=${env.HOST_UID} HOST_GID=${env.HOST_GID} ${COMPOSE} down || true
+                    ${COMPOSE} down || true
                     HOST_UID=${env.HOST_UID} HOST_GID=${env.HOST_GID} ${COMPOSE} up -d --build
-                """
-            }
-        }
-
-        stage('Install Backend Dependencies') {
-            steps {
-                echo "📦 Installing Composer dependencies inside container..."
-                sh """
                     ${COMPOSE} exec -T laravel-api sh -c '
-                        composer install --no-interaction --optimize-autoloader &&
+                        composer update --no-progress --prefer-dist &&
                         php artisan config:clear || true &&
                         php artisan cache:clear || true &&
                         php artisan view:clear || true &&
@@ -87,30 +80,49 @@ pipeline {
             }
         }
 
-
         stage('Run Backend Unit Tests') {
             steps {
                 echo "🧪 Running PHPUnit tests..."
                 sh """
                     ${COMPOSE} exec -T laravel-api sh -c '
-                        if [ ! -f ./vendor/bin/phpunit ]; then
-                            echo "❌ PHPUnit not found! Aborting..."
+                        if [ -f ./vendor/bin/pest ]; then
+                            APP_ENV=testing ./vendor/bin/pest
+                        elif [ -f ./vendor/bin/phpunit ]; then
+                            APP_ENV=testing ./vendor/bin/phpunit
+                        else
+                            echo "❌ No test runner found. Aborting..."
                             exit 1
                         fi
-                        APP_ENV=testing ./vendor/bin/phpunit
                     '
                 """
             }
         }
 
-        stage('Manual Approval to Finish') {
+        stage('Install Production Dependencies') {
             steps {
-                input message: '✅ Test environment is up. Visit the app at http://localhost:4200. Click Continue when done testing.'
+                echo "📦 Switching to production dependencies..."
+                sh """
+                    ${COMPOSE} exec -T laravel-api sh -c '
+                        composer install --no-dev --optimize-autoloader &&
+                        composer dump-autoload -o
+                    '
+                """
+            }
+        }
+
+        stage('Deploy Test Environment') {
+            steps {
+                input message: '✅ Tests passed. Continue to deploy test environment?'
+                echo "🚀 Deploying test environment with production dependencies..."
+                sh """
+                    HOST_UID=${env.HOST_UID} HOST_GID=${env.HOST_GID} ${COMPOSE} restart || true
+                """
             }
         }
 
         stage('Teardown Test Environment') {
             steps {
+                input message: '🧹 Finished testing manually? Proceed to teardown?'
                 echo "🧹 Stopping and cleaning up containers..."
                 sh """
                     ${COMPOSE} down || true
