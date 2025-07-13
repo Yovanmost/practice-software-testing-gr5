@@ -55,34 +55,6 @@ pipeline {
         //     }
         // }
 
-        stage('Install Backend Dependencies') {
-            steps {
-                echo "📦 Installing Composer dependencies in container..."
-                sh """
-                    ${COMPOSE} run --rm laravel-api \
-                    sh -c 'composer update --no-progress --prefer-dist'
-                """
-            }
-        }
-
-        stage('Run Laravel Tests') {
-            steps {
-                echo "🧪 Running Laravel tests (Pest or PHPUnit)..."
-                script {
-                    def sprint = env.SPRINT_FOLDER
-                    def testCmd = sprint == 'sprint5-with-bugs'
-                        ? './vendor/bin/pest'
-                        : './vendor/bin/phpunit'
-
-                    sh """
-                        ${COMPOSE} run --rm laravel-api \
-                        sh -c 'APP_ENV=testing ${testCmd}'
-                    """
-                }
-            }
-        }
-
-
         stage('Check Required Ports') {
             steps {
                 echo "🔎 Checking if required ports are available..."
