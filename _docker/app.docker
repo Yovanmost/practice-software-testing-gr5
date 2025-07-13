@@ -1,31 +1,37 @@
 FROM php:8.3-fpm-alpine
 
-RUN apk add --no-cache mysql-client msmtp perl wget procps shadow libzip libpng libjpeg-turbo libwebp freetype icu
+# Cài các thư viện hệ thống cần thiết
+RUN apk add --no-cache \
+    mysql-client msmtp perl wget procps shadow \
+    libzip libpng libjpeg-turbo libwebp freetype icu \
+    libffi \
+    && apk add --no-cache --virtual .build-deps \
+    icu-dev zlib-dev g++ make autoconf libffi-dev libzip-dev \
+    libpng-dev libwebp-dev libjpeg-turbo-dev freetype-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
+    && docker-php-ext-configure ffi --with-ffi \
+    && docker-php-ext-install gd pdo_mysql ffi intl opcache exif zip \
+    && apk del .build-deps \
+    && rm -rf /usr/src/php*
 
-RUN apk add --no-cache --virtual build-essentials \
-    icu-dev icu-libs zlib-dev g++ make automake autoconf libffi-dev libzip-dev \
-    libpng-dev libwebp-dev libjpeg-turbo-dev freetype-dev && \
-    docker-php-ext-configure gd --enable-gd --with-freetype --with-jpeg --with-webp && \
-    docker-php-ext-configure ffi --with-ffi && \
-    docker-php-ext-install gd && \
-    docker-php-ext-install pdo_mysql && \
-    docker-php-ext-install ffi && \
-    docker-php-ext-install intl && \
-    docker-php-ext-install opcache && \
-    docker-php-ext-install exif && \
-    docker-php-ext-install zip && \
-    apk del build-essentials && rm -rf /usr/src/php*
-
-# Copy configuration
+# Copy các file cấu hình PHP
 COPY opcache.ini $PHP_INI_DIR/conf.d/
 COPY php-ini-overrides.ini $PHP_INI_DIR/conf.d/
 
-RUN usermod -u 1000 www-data
+# Cài Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-RUN chown -R www-data:www-data /var/www
+# Đặt thư mục làm việc
+WORKDIR /var/www
 
+# Copy mã nguồn Laravel vào container
+COPY . /var/www
+
+# Cấp quyền cho thư mục cần thiết (cẩn thận nếu dùng volume bind)
+RUN chown -R www-data:www-data /var/www \
+    && chmod -R 775 /var/www \
+    && composer install --ignore-platform-req=ext-ffi --no-interaction --prefer-dist
+
+# Chạy bằng user www-data cho an toàn
 USER www-data
 
-
-# ✅ Copy .env.prod into .env at runtime, then start PHP-FPM
-CMD cp /var/www/.env.prod /var/www/.env && php-fpm
