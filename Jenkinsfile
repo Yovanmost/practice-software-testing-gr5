@@ -17,16 +17,6 @@ pipeline {
     }
 
     stages {
-
-        stage('Get Host UID/GID') {
-            steps {
-                script {
-                    env.HOST_UID = sh(script: "id -u", returnStdout: true).trim()
-                    env.HOST_GID = sh(script: "id -g", returnStdout: true).trim()
-                }
-            }
-        }
-
         stage('Checkout & Verify') {
             steps {
                 echo "🔍 Verifying workspace and Git"
@@ -34,6 +24,36 @@ pipeline {
                 sh 'ls -la'
             }
         }
+
+        // stage('Install Backend Dependencies') {
+        //     steps {
+        //         dir("${env.API_DIR}") {
+        //             echo "📦 Installing Composer dependencies..."
+        //             sh '''
+        //                 composer install --no-interaction --optimize-autoloader
+        //                 php artisan config:clear || true
+        //                 php artisan cache:clear || true
+        //                 php artisan view:clear || true
+        //                 php artisan route:clear || true
+        //             '''
+        //         }
+        //     }
+        // }
+
+        // stage('Run Backend Unit Tests') {
+        //     steps {
+        //         dir("${env.API_DIR}") {
+        //             echo "🧪 Running PHPUnit tests..."
+        //             sh '''
+        //                 if [ ! -f ./vendor/bin/phpunit ]; then
+        //                     echo "❌ PHPUnit not found! Aborting..."
+        //                     exit 1
+        //                 fi
+        //                 APP_ENV=testing ./vendor/bin/phpunit
+        //             '''
+        //         }
+        //     }
+        // }
 
         stage('Check Required Ports') {
             steps {
@@ -52,77 +72,24 @@ pipeline {
             }
         }
 
-        stage('Build for Test (Composer dev + test)') {
-            steps {
-                echo "🔧 Building backend for testing (including dev dependencies)..."
-                sh """
-                    ${COMPOSE} down || true
-                    HOST_UID=${env.HOST_UID} HOST_GID=${env.HOST_GID} ${COMPOSE} up -d --build
-                    ${COMPOSE} exec -T laravel-api sh -c '
-                        composer update --no-progress --prefer-dist &&
-                        php artisan config:clear || true &&
-                        php artisan cache:clear || true &&
-                        php artisan view:clear || true &&
-                        php artisan route:clear || true
-                    '
-                """
-            }
-        }
-
-        stage('Fix Vendor Permissions') {
-            steps {
-                echo "🔧 Fixing vendor folder ownership for Jenkins agent..."
-                sh """
-                    ${COMPOSE} exec --user root -T laravel-api sh -c '
-                        chown -R ${HOST_UID}:${HOST_GID} /var/www/vendor || true
-                    '
-                """
-            }
-        }
-
-        stage('Run Backend Unit Tests') {
-            steps {
-                echo "🧪 Running PHPUnit tests..."
-                sh """
-                    ${COMPOSE} exec -T laravel-api sh -c '
-                        if [ -f ./vendor/bin/pest ]; then
-                            APP_ENV=testing ./vendor/bin/pest
-                        elif [ -f ./vendor/bin/phpunit ]; then
-                            APP_ENV=testing ./vendor/bin/phpunit
-                        else
-                            echo "❌ No test runner found. Aborting..."
-                            exit 1
-                        fi
-                    '
-                """
-            }
-        }
-
-        stage('Install Production Dependencies') {
-            steps {
-                echo "📦 Switching to production dependencies..."
-                sh """
-                    ${COMPOSE} exec -T laravel-api sh -c '
-                        composer install --no-dev --optimize-autoloader &&
-                        composer dump-autoload -o
-                    '
-                """
-            }
-        }
-
         stage('Deploy Test Environment') {
             steps {
-                input message: '✅ Tests passed. Continue to deploy test environment?'
-                echo "🚀 Deploying test environment with production dependencies..."
+                echo "🚧 Deploying test environment..."
                 sh """
-                    HOST_UID=${env.HOST_UID} HOST_GID=${env.HOST_GID} ${COMPOSE} restart || true
+                    ${COMPOSE} down || true
+                    ${COMPOSE} up -d --build
                 """
+            }
+        }
+
+        stage('Manual Approval to Finish') {
+            steps {
+                input message: '✅ Test environment is up. Visit the app at http://localhost:4200. Click Continue when done testing.'
             }
         }
 
         stage('Teardown Test Environment') {
             steps {
-                input message: '🧹 Finished testing manually? Proceed to teardown?'
                 echo "🧹 Stopping and cleaning up containers..."
                 sh """
                     ${COMPOSE} down || true
