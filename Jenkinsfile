@@ -9,9 +9,7 @@ pipeline {
         SPRINT_FOLDER = "sprint5-with-bugs"
         API_DIR = "${SPRINT_FOLDER}/API"
         COMPOSE = "docker compose -f docker-compose.yml"
-        COMPOSE_PROD = "docker compose -f docker-compose.yml -f _docker/override-prod.yml"
-        TEST_PROJECT = "ci-test"
-        PROD_PROJECT = "ci-prod"
+        REQUIRED_PORTS = "4200 8091 8000 3306 1025 1080"
     }
 
     options {
@@ -57,45 +55,46 @@ pipeline {
             }
         }
 
+        stage('Check Required Ports') {
+            steps {
+                echo "🔎 Checking if required ports are available..."
+                script {
+                    def ports = env.REQUIRED_PORTS.tokenize()
+                    for (port in ports) {
+                        def result = sh(script: "lsof -i :${port} || true", returnStdout: true).trim()
+                        if (result) {
+                            error "❌ Port ${port} is already in use!\n${result}"
+                        } else {
+                            echo "✅ Port ${port} is available"
+                        }
+                    }
+                }
+            }
+        }
+
         stage('Deploy Test Environment') {
             steps {
-                echo "🚧 Deploying test environment on port 4200 (UI)..."
+                echo "🚧 Deploying test environment..."
                 sh """
-                    ${COMPOSE} -p ${TEST_PROJECT} down || true
-                    ${COMPOSE} -p ${TEST_PROJECT} up -d --build
+                    ${COMPOSE} down || true
+                    ${COMPOSE} up -d --build
                 """
             }
         }
 
-        stage('Manual Approval for Production') {
+        stage('Manual Approval to Finish') {
             steps {
-                input message: '✅ Test deployment is up. Verify the app at http://localhost:4200. Click Continue to deploy to production.'
+                input message: '✅ Test environment is up. Visit the app at http://localhost:4200. Click Continue when done testing.'
             }
         }
 
         stage('Teardown Test Environment') {
             steps {
-                echo "🧹 Cleaning up test environment (wait 60s)..."
+                echo "🧹 Stopping and cleaning up containers..."
                 sh """
-                    ${COMPOSE} -p ${TEST_PROJECT} down || true
-                    sleep 60
+                    ${COMPOSE} down || true
+                    sleep 5
                 """
-            }
-        }
-
-        stage('Deploy Production Environment') {
-            steps {
-                echo "🚀 Deploying production stack (UI on different port)..."
-                sh """
-                    ${COMPOSE_PROD} -p ${PROD_PROJECT} down || true
-                    ${COMPOSE_PROD} -p ${PROD_PROJECT} up -d --build
-                """
-            }
-        }
-
-        stage('Final Manual Approval') {
-            steps {
-                input message: '✅ Production deployed. Confirm everything is OK to finish the pipeline.'
             }
         }
     }
@@ -108,9 +107,8 @@ pipeline {
             echo "❌ CI pipeline failed!"
         }
         always {
-            echo "🧹 Final cleanup step (test environment)..."
-            sh "${COMPOSE} -p ${TEST_PROJECT} down || true"
-            sh "${COMPOSE} -p ${PROD_PROJECT} down || true"
+            echo "🧹 Final cleanup (if needed)..."
+            sh "${COMPOSE} down || true"
         }
     }
 }
