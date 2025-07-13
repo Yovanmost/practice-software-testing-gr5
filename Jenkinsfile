@@ -65,6 +65,7 @@ pipeline {
             steps {
                 echo "📦 Installing Composer dependencies inside container..."
                 sh """
+                    ${COMPOSE} exec -T laravel-api composer install --no-interaction
                     ${COMPOSE} exec -T laravel-api sh -c '
                         composer install --no-interaction --optimize-autoloader &&
                         php artisan config:clear || true &&
