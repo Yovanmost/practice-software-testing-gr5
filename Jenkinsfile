@@ -10,6 +10,7 @@ pipeline {
         API_DIR = "${SPRINT_FOLDER}/API"
         COMPOSE = "docker compose -f docker-compose.yml"
         REQUIRED_PORTS = "4200 8091 8000 3306 1025 1080"
+        CONTAINER_USER = "www-data"
     }
 
     options {
@@ -54,9 +55,9 @@ pipeline {
 
         // stage('Install Backend Dependencies') {
         //     steps {
-        //         echo "📦 Installing Composer dependencies inside container..."
+        //         echo "📦 Installing Composer dependencies inside container as non-root..."
         //         sh """
-        //             ${COMPOSE} exec -T laravel-api sh -c '
+        //             ${COMPOSE} exec -T --user=${CONTAINER_USER} laravel-api sh -c '
         //                 composer install --no-interaction --optimize-autoloader &&
         //                 php artisan config:clear || true &&
         //                 php artisan cache:clear || true &&
@@ -71,7 +72,7 @@ pipeline {
         //     steps {
         //         echo "🧪 Running PHPUnit tests..."
         //         sh """
-        //             ${COMPOSE} exec -T laravel-api sh -c '
+        //             ${COMPOSE} exec -T --user=${CONTAINER_USER} laravel-api sh -c '
         //                 if [ ! -f ./vendor/bin/phpunit ]; then
         //                     echo "❌ PHPUnit not found! Aborting..."
         //                     exit 1
