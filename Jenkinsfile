@@ -36,7 +36,8 @@ pipeline {
         stage('Ensure Clean Test Deployment') {
             steps {
                 echo "⛔ Stopping previous test deployment (if running)..."
-                sh "${COMPOSE} -p ${TEST_PROJECT} down || true"
+                // sh "${COMPOSE} -p ${TEST_PROJECT} down || true"
+                sh "${COMPOSE} down || true"
             }
         }
 
@@ -121,8 +122,11 @@ pipeline {
         stage('Clean up test') {
             steps {
                 echo "Clean up test deployment."
+                // sh """
+                //     ${COMPOSE} -p ${TEST_PROJECT} down || true
+                // """
                 sh """
-                    ${COMPOSE} -p ${TEST_PROJECT} down || true
+                    ${COMPOSE} down || true
                 """
             }
         }
@@ -130,9 +134,13 @@ pipeline {
         stage('Deploy to Production') {
             steps {
                 echo "🚀 Deploying production stack on port 80..."
+                // sh """
+                //     docker compose -f docker-compose.yml -f _docker/override-prod.yml -p ${PROD_PROJECT} down || true
+                //     docker compose -f docker-compose.yml -f _docker/override-prod.yml -p ${PROD_PROJECT} up -d --build
+                // """
                 sh """
-                    docker compose -f docker-compose.yml -f _docker/override-prod.yml -p ${PROD_PROJECT} down || true
-                    docker compose -f docker-compose.yml -f _docker/override-prod.yml -p ${PROD_PROJECT} up -d --build
+                    docker compose -f docker-compose.yml down || true
+                    docker compose -f docker-compose.yml up -d --build
                 """
             }
         }
@@ -159,7 +167,8 @@ pipeline {
         }
         always {
             echo "🧹 Cleanup: Stopping test containers..."
-            sh "${COMPOSE} -p ${TEST_PROJECT} down || true"
+            // sh "${COMPOSE} -p ${TEST_PROJECT} down || true"
+            sh "${COMPOSE} down || true"
         }
     }
 }
