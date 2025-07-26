@@ -43,18 +43,6 @@ pipeline {
             }
         }
 
-        stage('Clean Workspace') {
-            steps {
-                echo "🧹 Cleaning node_modules before npm install..."
-                dir("${env.UI_DIR}") {
-                    sh '''
-                        sudo rm -rf node_modules package-lock.json || true
-                        sudo chown -R $USER:$USER . || true
-                    '''
-                }
-            }
-        }
-
         stage('Install Backend Dependencies') {
             steps {
                 dir("${env.API_DIR}") {
@@ -66,6 +54,11 @@ pipeline {
                         php artisan view:clear || true
                         php artisan route:clear || true
                     '''
+                }
+
+                dir("${env.UI_DIR}") {
+                    echo "Installing Node.js dependencies for UI (e.g., Angular)..."
+                    sh 'npm ci --legacy-peer-deps'
                 }
             }
         }
