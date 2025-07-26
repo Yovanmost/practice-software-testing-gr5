@@ -5,6 +5,11 @@ pipeline {
         }
     }
 
+    parameters {
+        string(name: 'COMMIT_HASH', defaultValue: '', description: 'Enter the Git commit hash to build (leave empty for latest)')
+    }
+
+
     environment {
         SPRINT_FOLDER = "sprint5-with-bugs"
         API_DIR = "${SPRINT_FOLDER}/API"
@@ -20,11 +25,34 @@ pipeline {
     }
 
     stages {
+        // stage('Checkout & Verify') {
+        //     steps {
+        //         echo "🔍 Verifying workspace and Git"
+        //         sh 'git --version'
+        //         sh 'ls -la'
+        //     }
+        // }
+
         stage('Checkout & Verify') {
             steps {
                 echo "🔍 Verifying workspace and Git"
                 sh 'git --version'
                 sh 'ls -la'
+
+                script {
+                    if (params.COMMIT_HASH?.trim()) {
+                        echo "📦 Checking out user-specified commit: ${params.COMMIT_HASH}"
+                        sh """
+                            git fetch --all
+                            git checkout ${params.COMMIT_HASH}
+                        """
+                    } else {
+                        echo "📦 No commit hash specified, using latest on current branch"
+                        sh "git checkout $(git rev-parse HEAD)"
+                    }
+                }
+
+                sh "git log -n 1 --oneline"
             }
         }
 
