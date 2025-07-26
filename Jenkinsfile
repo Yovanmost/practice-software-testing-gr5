@@ -11,6 +11,8 @@ pipeline {
         COMPOSE = "docker compose -f docker-compose.yml"
         COMPOSE_PROD = "docker compose -f docker-compose.yml -f _docker/override-prod.yml"
         REQUIRED_PORTS = "4200 8091 8000 3306 1025 1080"
+        CHROME_BIN = "/usr/bin/chromium"
+        UI_DIR = "${SPRINT_FOLDER}/UI"
     }
 
     options {
@@ -74,6 +76,17 @@ pipeline {
                         fi
                         APP_ENV=testing ./vendor/bin/phpunit
                     '''
+                }
+            }
+        }
+
+        stage('Frontend Karma') {
+            steps {
+                dir("${env.UI_DIR}") {
+                    echo "Running Angular unit tests..."
+                    withEnv(["CHROME_BIN=${env.CHROME_BIN}"]) {
+                        sh 'xvfb-run --auto-servernum -- npm run test -- --watch=false --browsers=ChromeHeadlessCI --code-coverage=false'
+                    }
                 }
             }
         }
