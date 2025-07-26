@@ -5,10 +5,6 @@ pipeline {
         }
     }
 
-    parameters {
-        string(name: 'COMMIT_HASH', defaultValue: '', description: 'Enter specific Git commit hash to check out (leave blank for latest)')
-    }
-
     environment {
         SPRINT_FOLDER = "sprint5-with-bugs"
         API_DIR = "${SPRINT_FOLDER}/API"
@@ -24,37 +20,10 @@ pipeline {
     }
 
     stages {
-        // stage('Checkout & Verify') {
-        //     steps {
-        //         echo "🔍 Verifying workspace and Git"
-        //         sh 'git --version'
-        //         sh 'ls -la'
-        //     }
-        // }
-
         stage('Checkout & Verify') {
             steps {
-                echo "🔍 Checking out code..."
-                script {
-                    if (params.COMMIT_HASH?.trim()) {
-                        echo "📦 Using specified commit: ${params.COMMIT_HASH}"
-                        checkout([
-                            $class: 'GitSCM',
-                            branches: [[name: "${params.COMMIT_HASH}"]],
-                            extensions: [[$class: 'CloneOption', depth: 0, shallow: false]],
-                            userRemoteConfigs: [[
-                                url: 'https://github.com/Yovanmost/practice-software-testing-gr5.git'
-                            ]]
-                        ])
-                    } else {
-                        echo "📦 Using latest commit from default branch"
-                        checkout scm
-                    }
-                }
-
-                echo "🔍 Verifying Git version and workspace content"
+                echo "🔍 Verifying workspace and Git"
                 sh 'git --version'
-                sh 'git log -3 --oneline'
                 sh 'ls -la'
             }
         }
