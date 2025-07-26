@@ -6,7 +6,7 @@ pipeline {
     }
 
     parameters {
-        string(name: 'COMMIT_HASH', defaultValue: '', description: '🔢 Enter specific Git commit hash to check out (leave blank for latest)')
+        string(name: 'COMMIT_HASH', defaultValue: '', description: 'Enter specific Git commit hash to check out (leave blank for latest)')
     }
 
     environment {
@@ -36,11 +36,15 @@ pipeline {
             steps {
                 echo "🔍 Checking out code..."
                 script {
-                    if (params.GIT_COMMIT_HASH?.trim()) {
-                        echo "📦 Using specified commit: ${params.GIT_COMMIT_HASH}"
-                        checkout([$class: 'GitSCM',
-                            branches: [[name: params.GIT_COMMIT_HASH]],
-                            userRemoteConfigs: [[url: 'https://github.com/Yovanmost/practice-software-testing-gr5.git']]
+                    if (params.COMMIT_HASH?.trim()) {
+                        echo "📦 Using specified commit: ${params.COMMIT_HASH}"
+                        checkout([
+                            $class: 'GitSCM',
+                            branches: [[name: "${params.COMMIT_HASH}"]],
+                            extensions: [[$class: 'CloneOption', depth: 0, shallow: false]],
+                            userRemoteConfigs: [[
+                                url: 'https://github.com/Yovanmost/practice-software-testing-gr5.git'
+                            ]]
                         ])
                     } else {
                         echo "📦 Using latest commit from default branch"
