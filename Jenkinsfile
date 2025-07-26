@@ -43,6 +43,36 @@ pipeline {
             }
         }
 
+        stage('Install Backend Dependencies') {
+            steps {
+                dir("${env.API_DIR}") {
+                    echo "📦 Installing Composer dependencies..."
+                    sh '''
+                        composer install --no-interaction --optimize-autoloader
+                        php artisan config:clear || true
+                        php artisan cache:clear || true
+                        php artisan view:clear || true
+                        php artisan route:clear || true
+                    '''
+                }
+            }
+        }
+
+        stage('Run Backend Unit Tests') {
+            steps {
+                dir("${env.API_DIR}") {
+                    echo "🧪 Running PHPUnit tests..."
+                    sh '''
+                        if [ ! -f ./vendor/bin/phpunit ]; then
+                            echo "❌ PHPUnit not found! Aborting..."
+                            exit 1
+                        fi
+                        APP_ENV=testing ./vendor/bin/phpunit
+                    '''
+                }
+            }
+        }
+
         stage('Deploy Test Environment') {
             steps {
                 echo "🚧 Deploying test environment..."
