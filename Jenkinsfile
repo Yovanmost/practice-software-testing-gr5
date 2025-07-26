@@ -45,17 +45,17 @@ pipeline {
             }
         }
 
-        stage('Clean Workspace') {
-            steps {
-                echo "🧹 Cleaning node_modules before npm install..."
-                dir("${env.UI_DIR}") {
-                    sh '''
-                        sudo rm -rf node_modules package-lock.json || true
-                        sudo chown -R jenkins:jenkins . || true
-                    '''
-                }
-            }
-        }
+        // stage('Clean Workspace') {
+        //     steps {
+        //         echo "🧹 Cleaning node_modules before npm install..."
+        //         dir("${env.UI_DIR}") {
+        //             sh '''
+        //                 sudo rm -rf node_modules package-lock.json || true
+        //                 sudo chown -R jenkins:jenkins . || true
+        //             '''
+        //         }
+        //     }
+        // }
 
         stage('Install Backend Dependencies') {
             steps {
@@ -71,11 +71,18 @@ pipeline {
                 }
 
                 dir("${env.UI_DIR}") {
-                    echo "Installing Node.js dependencies for UI (e.g., Angular)..."
-                    sh 'npm ci --legacy-peer-deps'
+                    echo "📦 Checking Node.js dependencies for UI..."
+                    script {
+                        def installed = fileExists('node_modules')
+                        if (installed) {
+                            echo "✅ node_modules already exists. Skipping npm ci."
+                        } else {
+                            echo "📦 Installing Node.js dependencies..."
+                            sh 'npm ci --legacy-peer-deps'
+                        }
+                    }
                 }
             }
-        }
 
         stage('Run Backend Unit Tests') {
             steps {
