@@ -83,6 +83,7 @@ pipeline {
                     }
                 }
             }
+        }
 
         stage('Run Backend Unit Tests') {
             steps {
