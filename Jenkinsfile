@@ -24,7 +24,7 @@ pipeline {
     }
 
     stages {
-        stage('Checkout & Verify') {
+        // stage('Checkout & Verify') {
         //     steps {
         //         echo "🔍 Verifying workspace and Git"
         //         sh 'git --version'
@@ -40,7 +40,7 @@ pipeline {
                         echo "📦 Using specified commit: ${params.GIT_COMMIT_HASH}"
                         checkout([$class: 'GitSCM',
                             branches: [[name: params.GIT_COMMIT_HASH]],
-                            userRemoteConfigs: [[url: 'https://github.com/Yovanmost/practice-software-testing-gr5.git']]
+                            userRemoteConfigs: [[url: 'https://github.com/YOUR-REPO-URL.git']]
                         ])
                     } else {
                         echo "📦 Using latest commit from default branch"
