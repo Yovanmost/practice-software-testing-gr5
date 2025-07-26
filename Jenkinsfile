@@ -42,10 +42,10 @@ pipeline {
                 script {
                     if (params.COMMIT_HASH?.trim()) {
                         echo "Checking out user-specified commit: ${params.COMMIT_HASH}"
-                        sh '''
+                        sh """
                             git fetch --all
                             git checkout ${params.COMMIT_HASH}
-                        '''
+                        """
                     } else {
                         echo "No commit hash specified, using latest on current branch"
                         sh 'git checkout $(git rev-parse HEAD)'
