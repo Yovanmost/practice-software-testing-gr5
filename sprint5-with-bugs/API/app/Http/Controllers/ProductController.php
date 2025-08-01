@@ -210,7 +210,7 @@ class ProductController extends Controller
         Log::debug('Product found', ['id' => $product->id]);
 
         // // BUG: Remove 'name' field from response
-        unset($product['name']);
+        // unset($product['name']);
 
         return $this->preferredFormat($product);
     }
