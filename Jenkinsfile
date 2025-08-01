@@ -149,7 +149,7 @@ pipeline {
             }
         }
 
-        stage('Manual Approval for Production') {
+        stage('Manual Approval Test Before Deploy Production') {
             steps {
                 input message: '✅ Test environment is up at http://localhost:4200. Click Continue to deploy to production.'
             }
@@ -175,7 +175,7 @@ pipeline {
             }
         }
 
-        stage('Final Manual Approval') {
+        stage('Final Manual Approval For Production') {
             steps {
                 input message: '✅ Production deployed at http://localhost:4201. Confirm everything is OK to finish.'
             }
