@@ -1,0 +1,14 @@
+Test case ID,Expected Response,Expected Result,Product Name,Description,Stock,Price,Location Offer,Item for Rent,Brand,Category,Image
+PRT_ADD_00,The response has all the fields as request,Pass,Product 10h37,This is a normal product with correct data,10,1200,true,false,1,7,2
+PRT_ADD_01,Product added successfully,Pass,Product 9h53,This is a normal product with correct data,10,1200,true,false,1,7,2
+PRT_ADD_02,Missing product name -> cannot added,Fail,,Empty name,20,800,false,true,2,3,7
+PRT_ADD_03,Missing description -> cannot added,Fail,Empty Description,,20,800,false,true,2,3,7
+PRT_ADD_04,Name is more than 120 character -> cannot added,Fail,"Creativity thrives when imagination meets purpose, crafting ideas that inspire, connect, and transform the world.????????",Name has 121 characters,20,800,false,true,2,3,7
+PRT_ADD_05,Stock value is not a number -> cannot added,Fail,Stock - Product 1,Stock value is abc,abc,800,false,true,2,3,7
+PRT_ADD_06,Stock value is negative -> cannot added,Fail,Stock - Product 2,Stock value is -1,-1,800,false,true,2,3,7
+PRT_ADD_07,Stock value is empty -> cannot added,Fail,Stock - Product 3,Stock value is empty,,800,false,true,2,3,7
+PRT_ADD_08,Stock value is > 2147483647 -> cannot added,Fail,Stock - Product 4,Stock value is 2147483648,2147483648,800,false,true,2,3,7
+PRT_ADD_09,Price value is negative -> cannot added,Fail,Price - Product 1,Price value is -1,20,-1,false,true,2,3,7
+PRT_ADD_10,Price value is a string -> cannot added,Fail,Price - Product 2,Price value is abc,20,abc,false,true,2,3,7
+PRT_ADD_11,Price value is empty -> cannot added,Fail,Price - Product 3,Price value is empty,20,,false,true,2,3,7
+PRT_ADD_12,Price value is > 99999999 -> cannot added,Fail,Price - Product 4,Price value is 100000000,20,100000000,false,true,2,3,7

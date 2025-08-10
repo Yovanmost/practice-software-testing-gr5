@@ -1,0 +1,312 @@
+{
+	"info": {
+		"_postman_id": "2177c81f-f4aa-4555-8013-35286ba0bab1",
+		"name": "HW07",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "47466839",
+		"_collection_link": "https://yovanmost-2441075.postman.co/workspace/B%25C3%25ACnh-Minh-Nguy%25E1%25BB%2585n's-Workspace~fd82ffc0-b25f-436f-8566-040f4d508e93/collection/47466839-2177c81f-f4aa-4555-8013-35286ba0bab1?action=share&source=collection_link&creator=47466839"
+	},
+	"item": [
+		{
+			"name": "Add-Product",
+			"item": [
+				{
+					"name": "Add-Product",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"/// Get test case details from CSV iteration data\r",
+									"let testCaseId = pm.iterationData.get(\"Test case ID\");\r",
+									"let expectedResponse = pm.iterationData.get(\"Expected Response\");\r",
+									"let expectedResult = pm.iterationData.get(\"Expected Result\");\r",
+									"\r",
+									"// Convert to lowercase for easier matching\r",
+									"let expectedResultLower = expectedResult ? expectedResult.toLowerCase() : \"\";\r",
+									"\r",
+									"// Get actual response\r",
+									"let statusCode = pm.response.code;\r",
+									"let jsonData;\r",
+									"try {\r",
+									"    jsonData = pm.response.json();\r",
+									"} catch (e) {\r",
+									"    jsonData = {};\r",
+									"}\r",
+									"\r",
+									"// Helper function to compare if response has all request fields\r",
+									"function hasAllFieldsAsRequest() {\r",
+									"    let requestData = {\r",
+									"        name: pm.iterationData.get(\"Product Name\"),\r",
+									"        description: pm.iterationData.get(\"Description\"),\r",
+									"        stock: pm.iterationData.get(\"Stock\") !== \"\" ? Number(pm.iterationData.get(\"Stock\")) : null,\r",
+									"        price: pm.iterationData.get(\"Price\") !== \"\" ? Number(pm.iterationData.get(\"Price\")) : null,\r",
+									"        location_offer: pm.iterationData.get(\"Location Offer\") === \"true\",\r",
+									"        item_for_rent: pm.iterationData.get(\"Item for Rent\") === \"true\",\r",
+									"        brand_id: Number(pm.iterationData.get(\"Brand\")),\r",
+									"        category_id: Number(pm.iterationData.get(\"Category\")),\r",
+									"        image_id: Number(pm.iterationData.get(\"Image\"))\r",
+									"    };\r",
+									"\r",
+									"    for (let key in requestData) {\r",
+									"        if (requestData.hasOwnProperty(key)) {\r",
+									"            let reqValue = requestData[key];\r",
+									"            let resValue = jsonData[key];\r",
+									"            if (String(reqValue).trim() !== String(resValue).trim()) {\r",
+									"                console.log(`Field mismatch: ${key} | Expected: ${reqValue} | Got: ${resValue}`);\r",
+									"                return false;\r",
+									"            }\r",
+									"        }\r",
+									"    }\r",
+									"    return true;\r",
+									"}\r",
+									"\r",
+									"// Main test cases\r",
+									"pm.test(`Test Case: ${testCaseId} - ${expectedResponse}`, function () {\r",
+									"\r",
+									"    // Special edge case PRT_ADD_00\r",
+									"    if (testCaseId === \"PRT_ADD_00\") {\r",
+									"        pm.expect(statusCode).to.eql(200); // [Inference] The provided script expects a 200 status for this case\r",
+									"        pm.expect(hasAllFieldsAsRequest(), \"Response should have all fields matching request\").to.be.true;\r",
+									"        return;\r",
+									"    }\r",
+									"\r",
+									"    // Pass cases (Expected: Pass, Status Code: 201)\r",
+									"    if (expectedResultLower === \"pass\" && statusCode === 201) {\r",
+									"        pm.expect(true).to.be.true;\r",
+									"        return;\r",
+									"    }\r",
+									"\r",
+									"    // Fail cases (Expected: Fail, Status Code: 422 or 500)\r",
+									"    if (expectedResultLower === \"fail\" && (statusCode === 422 || statusCode === 500)) {\r",
+									"        pm.expect(true).to.be.true;\r",
+									"        return;\r",
+									"    }\r",
+									"\r",
+									"    // Anything else means failure\r",
+									"    pm.expect.fail(`Unexpected result. Status: ${statusCode}, Expected: ${expectedResultLower}`);\r",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"id\": \"\",\r\n    \"name\": \"{{Product Name}}\",\r\n    \"description\": \"{{Description}}\",\r\n    \"stock\": \"{{Stock}}\",\r\n    \"price\": \"{{Price}}\",\r\n    \"brand_id\": \"{{Brand}}\",\r\n    \"category_id\": \"{{Category}}\",\r\n    \"product_image_id\": \"{{Image}}\",\r\n    \"is_location_offer\": {{Location Offer}},\r\n    \"is_rental\": {{Item for Rent}}\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/products",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"products"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Add-User",
+			"item": [
+				{
+					"name": "Add-User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Get test case details from CSV iteration data\r",
+									"let testCaseId = pm.iterationData.get(\"Test case ID\");\r",
+									"let expectedResponse = pm.iterationData.get(\"Expected Response\");\r",
+									"let expectedResult = pm.iterationData.get(\"Expected Result\");\r",
+									"\r",
+									"// Convert to lowercase for easier matching\r",
+									"let expectedResultLower = expectedResult ? expectedResult.toLowerCase() : \"\";\r",
+									"\r",
+									"// Get actual response\r",
+									"let statusCode = pm.response.code;\r",
+									"let jsonData;\r",
+									"try {\r",
+									"    jsonData = pm.response.json();\r",
+									"} catch (e) {\r",
+									"    jsonData = {};\r",
+									"}\r",
+									"\r",
+									"// Helper function to compare if response has all request fields\r",
+									"function hasAllFieldsAsRequest() {\r",
+									"    let requestData = pm.iterationData.toObject();\r",
+									"    // Remove non-payload fields (Test case ID, Expected Response, Expected Result)\r",
+									"    delete requestData[\"Test case ID\"];\r",
+									"    delete requestData[\"Expected Response\"];\r",
+									"    delete requestData[\"Expected Result\"];\r",
+									"\r",
+									"    for (let key in requestData) {\r",
+									"        if (requestData.hasOwnProperty(key)) {\r",
+									"            let reqValue = requestData[key];\r",
+									"            let resValue = jsonData[key];\r",
+									"            if (String(reqValue).trim() !== String(resValue).trim()) {\r",
+									"                console.log(`Field mismatch: ${key} | Expected: ${reqValue} | Got: ${resValue}`);\r",
+									"                return false;\r",
+									"            }\r",
+									"        }\r",
+									"    }\r",
+									"    return true;\r",
+									"}\r",
+									"\r",
+									"// Main test cases\r",
+									"pm.test(`Test Case: ${testCaseId} - ${expectedResponse}`, function () {\r",
+									"\r",
+									"    // Special edge case URS_ADD_00\r",
+									"    if (testCaseId === \"URS_ADD_00\") {\r",
+									"        pm.expect(hasAllFieldsAsRequest(), \"Response should have all fields matching request\").to.be.true;\r",
+									"        return;\r",
+									"    }\r",
+									"\r",
+									"    // Pass cases (Expected: Pass, Status Code: 201)\r",
+									"    if (expectedResultLower === \"pass\" && statusCode === 201) {\r",
+									"        pm.expect(true).to.be.true;\r",
+									"        return;\r",
+									"    }\r",
+									"\r",
+									"    // Fail cases (Expected: Fail, Status Code: 422 or 500)\r",
+									"    if (expectedResultLower === \"fail\" && (statusCode === 422 || statusCode === 500)) {\r",
+									"        pm.expect(true).to.be.true;\r",
+									"        return;\r",
+									"    }\r",
+									"\r",
+									"    // Anything else means failure\r",
+									"    pm.expect.fail(`Unexpected result. Status: ${statusCode}, Expected: ${expectedResultLower}`);\r",
+									"});\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"id\": \"\",\r\n    \"first_name\": \"{{First Name}}\",\r\n    \"last_name\": \"{{Last Name}}\",\r\n    \"dob\": \"{{Date of Birth}}\",\r\n    \"address\": \"{{Address}}\",\r\n    \"city\": \"{{City}}\",\r\n    \"state\": \"{{State}}\",\r\n    \"country\": \"{{Country}}\",\r\n    \"postcode\": \"{{Postal Code}}\",\r\n    \"phone\": \"{{Phone}}\",\r\n    \"enabled\": \"{{Enabled}}\",\r\n    \"email\": \"{{Email}}\",\r\n    \"password\": \"{{Password}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/register",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"register"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Total-Sale-Of-Years",
+			"item": [
+				{
+					"name": "Total-Sale-Of-Years",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Get test case details from CSV iteration data\r",
+									"let testCaseId = pm.iterationData.get(\"Test case ID\");\r",
+									"let expectedResponse = pm.iterationData.get(\"Expected Response\");\r",
+									"let expectedResult = pm.iterationData.get(\"Expected Result\");\r",
+									"\r",
+									"// Convert to lowercase for easier matching\r",
+									"let expectedResultLower = expectedResult ? expectedResult.toLowerCase() : \"\";\r",
+									"\r",
+									"// Get actual response\r",
+									"let statusCode = pm.response.code;\r",
+									"let jsonData;\r",
+									"try {\r",
+									"    jsonData = pm.response.json();\r",
+									"} catch (e) {\r",
+									"    jsonData = {};\r",
+									"}\r",
+									"\r",
+									"// Main test cases\r",
+									"pm.test(`Test Case: ${testCaseId} - ${expectedResponse}`, function () {\r",
+									"\r",
+									"    // Pass cases (Expected: Pass, Status Code: 200)\r",
+									"    if (expectedResultLower === \"pass\" && statusCode === 200) {\r",
+									"        pm.expect(true).to.be.true;\r",
+									"\r",
+									"        // [Inference] Add check for array length based on 'Years' parameter.\r",
+									"        // The original script had this commented out, but it's a critical part of the test logic.\r",
+									"        let yearsValue = pm.iterationData.get(\"Years\");\r",
+									"        if (yearsValue) {\r",
+									"            pm.expect(jsonData).to.be.an('array');\r",
+									"            pm.expect(jsonData.length).to.eql(Number(yearsValue));\r",
+									"        }\r",
+									"\r",
+									"        return;\r",
+									"    }\r",
+									"\r",
+									"    // Fail cases (Expected: Fail, Status Code: 422 or 500)\r",
+									"    if (expectedResultLower === \"fail\" && (statusCode === 422 || statusCode === 500)) {\r",
+									"        pm.expect(true).to.be.true;\r",
+									"        return;\r",
+									"    }\r",
+									"\r",
+									"    // Anything else means failure\r",
+									"    pm.expect.fail(`Unexpected result. Status: ${statusCode}, Expected: ${expectedResultLower}`);\r",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/reports/total-sales-of-years?years={{Years}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"reports",
+								"total-sales-of-years"
+							],
+							"query": [
+								{
+									"key": "years",
+									"value": "{{Years}}"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

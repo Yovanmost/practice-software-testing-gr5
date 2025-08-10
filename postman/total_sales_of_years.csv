@@ -1,0 +1,8 @@
+Test case ID,Expected Response,Expected Result,Years
+TSY_GET_00,The response is not empty. Response contains array of 5 year-total objects,Pass,5
+TSY_GET_01,Get sales for 1 year. Array contains only last year's total,Pass,1
+TSY_GET_02,Get sales for 10 years. Array length = 10,Pass,10
+TSY_GET_03,Missing years param. Return nothing,Pass,
+TSY_GET_04,Invalid years param (string),Fail,abc
+TSY_GET_05,Invalid years param (negative),Fail,-5
+TSY_GET_06,Invalid years param: 10000 years,Fail,10000
