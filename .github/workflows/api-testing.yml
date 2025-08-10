@@ -26,26 +26,26 @@ jobs:
       - name: GET Version
         run: curl -v -X GET 'http://localhost:8091/status'
 
-      # - name: Install Newman (Postman CLI)
-      #   run: npm install -g newman
+      - name: Install Newman (Postman CLI)
+        run: npm install -g newman
 
-      # - name: Run Add-Product tests 📦
-      #   run: |
-      #     newman run postman/HW07.postman_collection.json \
-      #       --folder "Add-Product" \
-      #       --iteration-data postman/add_product.csv \
-      #       --env-var baseUrl=http://localhost:8091
+      - name: Run Add-Product tests 📦
+        run: |
+          newman run postman/HW07.postman_collection.json \
+            --folder "Add-Product" \
+            --iteration-data postman/products_with_bugs.csv \
+            --env-var baseUrl=http://localhost:8091
 
-      # - name: Run Add-User tests 👤
-      #   run: |
-      #     newman run postman/HW07.postman_collection.json \
-      #       --folder "Add-User" \
-      #       --iteration-data postman/add_user.csv \
-      #       --env-var baseUrl=http://localhost:8091
+      - name: Run Add-User tests 👤
+        run: |
+          newman run postman/HW07.postman_collection.json \
+            --folder "Add-User" \
+            --iteration-data postman/users_with_bugs.csv \
+            --env-var baseUrl=http://localhost:8091
 
-      # - name: Run Total-Sale-Of-Years tests 📈
-      #   run: |
-      #     newman run postman/HW07.postman_collection.json \
-      #       --folder "Total-Sale-Of-Years" \
-      #       --iteration-data postman/total_sales.csv \
-      #       --env-var baseUrl=http://localhost:8091
+      - name: Run Total-Sale-Of-Years tests 📈
+        run: |
+          newman run postman/HW07.postman_collection.json \
+            --folder "Total-Sale-Of-Years" \
+            --iteration-data postman/total_sales_of_years.csv \
+            --env-var baseUrl=http://localhost:8091
