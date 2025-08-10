@@ -34,18 +34,28 @@ jobs:
           newman run postman/HW07.postman_collection.json \
             --folder "Add-Product" \
             --iteration-data postman/products_with_bugs.csv \
-            --env-var baseUrl=http://localhost:8091
+            --env-var baseUrl=http://localhost:8091 || echo "Add-Product failed" >> failed_tests.txt
 
       - name: Run Add-User tests 👤
         run: |
           newman run postman/HW07.postman_collection.json \
             --folder "Add-User" \
             --iteration-data postman/users_with_bugs.csv \
-            --env-var baseUrl=http://localhost:8091
+            --env-var baseUrl=http://localhost:8091 || echo "Add-User failed" >> failed_tests.txt
 
       - name: Run Total-Sale-Of-Years tests 📈
         run: |
           newman run postman/HW07.postman_collection.json \
             --folder "Total-Sale-Of-Years" \
             --iteration-data postman/total_sales_of_years.csv \
-            --env-var baseUrl=http://localhost:8091
+            --env-var baseUrl=http://localhost:8091 || echo "Total-Sale-Of-Years failed" >> failed_tests.txt
+
+      - name: Check overall result ✅/❌
+        run: |
+          if [ -f failed_tests.txt ]; then
+            echo "Some Postman test suites failed:"
+            cat failed_tests.txt
+            exit 1
+          else
+            echo "All Postman test suites passed!"
+          fi
