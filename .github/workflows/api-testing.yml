@@ -10,6 +10,9 @@ jobs:
   postman-tests:
     runs-on: ubuntu-22.04
     steps:
+      - name: Checkout ⚙️
+        uses: actions/checkout@v4
+
       - name: Install Newman (Postman CLI)
         run: npm install -g newman
 
