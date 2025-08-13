@@ -10,34 +10,6 @@ jobs:
   postman-tests:
     runs-on: ubuntu-22.04
     steps:
-      - name: Checkout ⚙️
-        uses: actions/checkout@v4
-
-      - name: Start containers 🐳
-        run: |
-          export DISABLE_LOGGING=true
-          docker compose -f docker-compose.yml up -d --force-recreate
-
-      - name: Sleep for 60 seconds ⏳
-        run: sleep 60s
-
-      - name: Create & Seed database 🌱
-        run: |
-          docker compose exec -T laravel-api php artisan migrate:refresh --seed
-
-      - name: GET Version
-        run: curl -v -X GET 'http://localhost:8091/status'
-
-      - name: Check data
-        run: curl -v -X GET 'http://localhost:8091/products'
-
-
-      - name: POST login
-        run: |
-          curl -v -X POST 'http://localhost:8091/users/login' \
-          -H 'Content-Type: application/json' \
-          --data-raw '{"email":"admin@practicesoftwaretesting.com","password":"welcome01"}'
-
       - name: Install Newman (Postman CLI)
         run: npm install -g newman
 
@@ -46,21 +18,21 @@ jobs:
           newman run postman/HW07.postman_collection.json \
             --folder "Add-Product" \
             --iteration-data postman/products_with_bugs.csv \
-            --env-var baseUrl=http://localhost:8091 || echo "Add-Product failed" >> failed_tests.txt
+            --env-var baseUrl=https://a08cd910d28d.ngrok-free.app  || echo "Add-Product failed" >> failed_tests.txt
 
       - name: Run Add-User tests 👤
         run: |
           newman run postman/HW07.postman_collection.json \
             --folder "Add-User" \
             --iteration-data postman/users_with_bugs.csv \
-            --env-var baseUrl=http://localhost:8091 || echo "Add-User failed" >> failed_tests.txt
+            --env-var baseUrl=https://a08cd910d28d.ngrok-free.app  || echo "Add-User failed" >> failed_tests.txt
 
       - name: Run Total-Sale-Of-Years tests 📈
         run: |
           newman run postman/HW07.postman_collection.json \
             --folder "Total-Sale-Of-Years" \
             --iteration-data postman/total_sales_of_years.csv \
-            --env-var baseUrl=http://localhost:8091 || echo "Total-Sale-Of-Years failed" >> failed_tests.txt
+            --env-var baseUrl=https://a08cd910d28d.ngrok-free.app  || echo "Total-Sale-Of-Years failed" >> failed_tests.txt
 
       - name: Check overall result ✅/❌
         run: |
